@@ -1,0 +1,21 @@
+[project]
+name = "agents"
+version = "0.1.0"
+description = "Multi-agent AI demo for students"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "langchain>=0.3.0",
+    "langchain-openai>=0.2.0",
+    "langchain-community>=0.3.0",
+    "langgraph>=0.2.0",
+    "langchain-mcp-adapters>=0.1.0",
+    "mcp>=1.0.0",
+    "python-dotenv>=1.0.0",
+    "langchain-ollama>=0.2.0",
+    "langchain-google-genai>=2.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
