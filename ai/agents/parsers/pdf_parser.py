@@ -5,9 +5,9 @@ Extracts text from PDF files using ``pdfplumber``, which provides
 excellent layout-aware text extraction for digitally-generated PDFs
 (reports, invoices, contracts, etc.).
 
-For scanned/image-only PDFs the parser detects the absence of
-selectable text and sets a flag — the OCR fallback is wired in a
-subsequent commit.
+For scanned/image-only PDFs the parser automatically falls back to
+OCR: each page is rendered as an image and processed through the
+configured :class:`~agents.ocr_engine.OCREngine`.
 
 Key design decisions
 --------------------
@@ -28,6 +28,9 @@ from pathlib import Path
 
 import pdfplumber
 
+from PIL import Image
+
+from agents.ocr_engine import OCREngine, OCREngineFactory
 from agents.parsers.base import BaseDocumentParser, ParsedDocument
 
 logger = logging.getLogger(__name__)
@@ -104,16 +107,18 @@ def _sync_extract(file_path: Path, max_pages: int | None) -> tuple[
 class PDFParser(BaseDocumentParser):
     """Parse PDF files using ``pdfplumber`` for native text extraction.
 
-    If the PDF is detected as image-only (scanned), the
-    ``is_ocr_result`` flag in the returned :class:`ParsedDocument` is
-    set to ``False`` and the text will be empty — the caller (or a
-    later pipeline stage) can then route the file through OCR.
+    If the PDF is detected as image-only (scanned), the parser
+    automatically falls back to OCR: each page is converted to an
+    image and processed through the configured :class:`OCREngine`.
 
     Parameters
     ----------
     default_max_pages : int
         Fallback value for ``max_pages`` when the caller does not
         specify one.  Defaults to 10.
+    ocr_engine : OCREngine or None
+        Injected OCR engine for scanned-PDF fallback.  ``None``
+        lazily creates a default :class:`TesseractOCREngine`.
 
     Examples
     --------
@@ -123,8 +128,64 @@ class PDFParser(BaseDocumentParser):
     42 5
     """
 
-    def __init__(self, default_max_pages: int = _DEFAULT_MAX_PAGES) -> None:
+    def __init__(
+        self,
+        default_max_pages: int = _DEFAULT_MAX_PAGES,
+        ocr_engine: OCREngine | None = None,
+    ) -> None:
         self._default_max_pages = default_max_pages
+        self._ocr_engine = ocr_engine
+        self._engine_initialised = ocr_engine is not None
+
+    def _get_engine(self) -> OCREngine:
+        """Lazy-initialise the OCR engine on first use."""
+        if not self._engine_initialised:
+            self._ocr_engine = OCREngineFactory.create()
+            self._engine_initialised = True
+        assert self._ocr_engine is not None
+        return self._ocr_engine
+
+    async def _ocr_pages(
+        self, file_path: Path, max_pages: int
+    ) -> list[str]:
+        """Render PDF pages as images and OCR each one.
+
+        Uses ``pdfplumber``'s built-in page-to-image conversion
+        (which wraps ``Wand`` / ``Pillow``) to produce a raster
+        image for each page, then passes it to the OCR engine.
+
+        Returns
+        -------
+        list[str]
+            One text string per page.
+        """
+        engine = self._get_engine()
+        ocr_pages: list[str] = []
+
+        def _render_page_images(
+            fp: Path, n: int,
+        ) -> list[Image.Image]:
+            """Render up to *n* pages to PIL Images (sync)."""
+            images: list[Image.Image] = []
+            with pdfplumber.open(str(fp)) as pdf:
+                for page in pdf.pages[:n]:
+                    pil_img = page.to_image(resolution=300).original
+                    images.append(pil_img)
+            return images
+
+        page_images = await asyncio.to_thread(
+            _render_page_images, file_path, max_pages
+        )
+
+        for idx, img in enumerate(page_images):
+            logger.info(
+                "OCR fallback: processing page %d/%d of '%s'",
+                idx + 1, len(page_images), file_path.name,
+            )
+            text = await engine.extract_text(img)
+            ocr_pages.append(text)
+
+        return ocr_pages
 
     async def parse(
         self,
@@ -162,14 +223,18 @@ class PDFParser(BaseDocumentParser):
             _sync_extract, file_path, effective_max
         )
 
+        used_ocr = False
+
         if is_image_only:
             logger.warning(
-                "PDF '%s' appears to be image-only (%d/%d pages empty). "
-                "OCR fallback recommended.",
+                "PDF '%s' detected as image-only (%d/%d pages empty). "
+                "Triggering OCR fallback.",
                 file_path.name,
                 sum(1 for p in raw_pages if not p),
                 len(raw_pages),
             )
+            raw_pages = await self._ocr_pages(file_path, effective_max)
+            used_ocr = True
 
         full_text = "\n\n".join(page for page in raw_pages if page)
 
@@ -186,7 +251,7 @@ class PDFParser(BaseDocumentParser):
             source_path=str(file_path.resolve()),
             mime_type="application/pdf",
             page_count=total_pages,
-            is_ocr_result=False,
+            is_ocr_result=used_ocr,
             metadata=metadata,
             raw_pages=raw_pages,
         )
