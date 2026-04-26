@@ -14,10 +14,18 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "langchain-ollama>=0.2.0",
     "langchain-google-genai>=2.0.0",
+    # ─── Document parsing și OCR (ai/agents/parsers) ───────────────────────
+    "pdfplumber>=0.11.0",    # PDF extraction și parsing
+    "python-docx>=1.1.0",    # DOCX file handling
+    "pytesseract>=0.3.10",   # OCR engine integration
+    "filetype>=1.2.0",       # MIME type detection
+    "Pillow>=10.0.0",        # image processing și OCR preprocessing
     # ─── Generare date de test (tools/mock_generator.py) ───────────────────
-    "fpdf2>=2.7.0",      # creare PDF-uri text și scan simulate
-    "Pillow>=10.0.0",    # generare imagini și inserare JPEG în PDF
-    "faker>=25.0.0",     # date false realiste în română
+    "fpdf2>=2.7.0",          # criere PDF-uri text și scan simulate
+    "faker>=25.0.0",         # date false realiste în română
+    # ─── Testing ────────────────────────────────────────────────────────────
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
 ]
 
 [dependency-groups]
