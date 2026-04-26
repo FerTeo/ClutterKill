@@ -75,19 +75,24 @@ pre-commit install
 ### 3. Pornește Ollama (model AI local)
 
 ```bash
-docker compose up -d
+docker compose up -d ollama
 ```
 
 > La **prima pornire**, se descarcă automat modelul `llama3.2` (~2 GB). Modelul este cached și nu se re-descarcă la restart. Ollama ascultă pe `localhost:11434`.
 
-### 4. Generează datele de test
+### 4. Generează datele de test (via Docker)
+
+> Nu trebuie să instalezi nicio dependență suplimentară (Pillow, fpdf2 etc.), se ocupă Docker de tot!
 
 ```bash
-# Din rădăcina repo-ului
-python tools/mock_generator.py
+# Construiește imaginea (o singură dată)
+docker compose build mock-generator
+
+# Rulează generatorul
+docker compose run --rm mock-generator
 ```
 
-> Generează **510 fișiere** în `tests/mock_data/` (~50–100 MB). Directorul este în `.gitignore` — nu se commit-ează, se generează local de fiecare inginer.
+> Generează **510 fișiere** în `tests/mock_data/` (~50–100 MB). Directorul este în `.gitignore` — nu se commit-ează, se generează local de fiecare inginer. Dacă datele există deja, vei fi întrebat dacă vrei să le suprascrii.
 
 ---
 
