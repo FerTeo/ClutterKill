@@ -14,6 +14,16 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "langchain-ollama>=0.2.0",
     "langchain-google-genai>=2.0.0",
+    # ─── Generare date de test (tools/mock_generator.py) ───────────────────
+    "fpdf2>=2.7.0",      # creare PDF-uri text și scan simulate
+    "Pillow>=10.0.0",    # generare imagini și inserare JPEG în PDF
+    "faker>=25.0.0",     # date false realiste în română
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.4.4",          # linting + formatare (vezi .ruff.toml)
+    "pre-commit>=3.7.0",    # git hooks (vezi .pre-commit-config.yaml)
 ]
 
 [build-system]

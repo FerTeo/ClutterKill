@@ -1,0 +1,59 @@
+# .ruff.toml — Configurație Ruff pentru ClutterKill
+# Documentație: https://docs.astral.sh/ruff/configuration/
+#
+# Instalare: pip install ruff  (sau: uv pip install ruff)
+# Utilizare:
+#   ruff check .          # verifică erori
+#   ruff check . --fix    # autofix
+#   ruff format .         # formatare cod
+
+line-length = 88
+indent-width = 4
+target-version = "py310"
+
+[lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes (variabile nefolosite, import-uri lipsă etc.)
+    "I",    # isort (ordonare import-uri)
+    "UP",   # pyupgrade (sintaxă modernă Python)
+    "B",    # flake8-bugbear (bug-uri comune și anti-patternuri)
+    "SIM",  # flake8-simplify (cod simplificiabil)
+    "C4",   # flake8-comprehensions (list/dict comprehensions optime)
+]
+
+ignore = [
+    "E501",   # line too long — gestionat de formatter
+    "B008",   # do not perform function calls in default args
+    "SIM108", # ternary operator — uneori if/else e mai lizibil
+]
+
+[lint.isort]
+known-first-party = ["database", "agents", "llm", "mcp_server"]
+force-sort-within-sections = true
+
+[lint.per-file-ignores]
+# Fișierele de test pot folosi assert și importuri largi
+"tests/**" = ["F401", "F811"]
+# Datele hardcodate din dummy_repository pot avea linii lungi
+"database/dummy_repository.py" = ["E501"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[exclude]
+# Directoare excluse din linting
+extend = [
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".git",
+    "tests/mock_data",     # fișiere generate automat
+    "*.egg-info",
+    "dist",
+    "build",
+]

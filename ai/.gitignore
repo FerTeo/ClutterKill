@@ -15,3 +15,16 @@ wheels/
 # Local LLM model files (large binaries)
 *.gguf
 models/
+
+# ─── ClutterKill additions ────────────────────────────────────────────────
+
+# Date de test generate de tools/mock_generator.py
+# Generează-le local cu: python tools/mock_generator.py
+tests/mock_data/
+
+# Docker
+.docker/
+
+# OS
+.DS_Store
+Thumbs.db

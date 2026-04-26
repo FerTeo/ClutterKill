@@ -23,6 +23,7 @@ import io
 import json
 import os
 import random
+import shutil
 import struct
 import sys
 from dataclasses import asdict, dataclass, field
@@ -252,15 +253,10 @@ def generate_text_pdfs(out_dir: Path, count: int = 200) -> list[MockFileMetadata
         pdf.add_page()
         pdf.set_font("Helvetica", size=10)
 
-        for line in content_text.split("\n"):
-            # fpdf2 tratează liniile goale
-            if line.strip() == "":
-                pdf.ln(4)
-            else:
-                try:
-                    pdf.multi_cell(0, 5, txt=line)
-                except Exception:
-                    pdf.multi_cell(0, 5, txt=line.encode("latin-1", errors="replace").decode("latin-1"))
+        # FPDF2 are nevoie doar de un apel la `write` care rezolvă și newlines și text wrapping.
+        # "Helvetica" încorporat suportă doar latin-1, deci înlocuim diacriticele cu `?` (OK pentru test)
+        clean_text = content_text.encode("latin-1", errors="replace").decode("latin-1")
+        pdf.write(5, text=clean_text)
 
         # Nume fișier: categorie + index + dată
         filename = _sanitize(f"{category}_{i+1:03d}_{_random_date_str().replace('.','_')}.pdf")
@@ -332,7 +328,7 @@ def generate_scanned_pdfs(out_dir: Path, count: int = 150) -> list[MockFileMetad
         pdf.add_page()
         # Inserează imaginea JPEG direct — fără text
         with io.BytesIO(jpeg_bytes) as buf:
-            pdf.image(buf, x=0, y=0, w=595, h=842, type="JPEG")
+            pdf.image(buf, x=0, y=0, w=595, h=842)
 
         filename = _sanitize(f"scan_{label.lower().replace(' ','_')}_{i+1:03d}.pdf")
         filepath = target / filename
@@ -504,9 +500,32 @@ def main() -> None:
     parser.add_argument("--scanned-pdfs", type=int, default=150)
     parser.add_argument("--images",       type=int, default=100)
     parser.add_argument("--corrupted",    type=int, default=60)
+    parser.add_argument(
+        "--force", action="store_true",
+        help="Suprascrie datele existente fără a cere confirmare"
+    )
     args = parser.parse_args()
 
     out_dir: Path = args.out_dir
+
+    if out_dir.exists() and any(out_dir.iterdir()):
+        if not args.force:
+            print(f"⚠️  Directorul {out_dir.resolve()} conține deja date de test.")
+            resp = input("Vrei să ștergi datele vechi și să generezi altele noi? [y/N]: ")
+            if resp.strip().lower() not in ('y', 'yes', 'da'):
+                print("Operațiune anulată.")
+                sys.exit(0)
+        
+        # Curățare director vechi pentru a nu păstra fișiere orfane.
+        # Nu putem șterge `out_dir` cu rmtree pentru că e un Volume Mount în Docker (Eroare 16).
+        # Ștergem doar ce e înăuntru.
+        print(f"🧹 Curățare date vechi din {out_dir.name}/...")
+        for item in out_dir.iterdir():
+            if item.is_dir():
+                shutil.rmtree(item)
+            else:
+                item.unlink()
+
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"\n🔪 ClutterKill Mock Generator")

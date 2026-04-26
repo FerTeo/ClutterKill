@@ -1,0 +1,55 @@
+# .pre-commit-config.yaml — Git Hooks pentru ClutterKill
+#
+# Instalare (o singură dată per dev):
+#   pip install pre-commit
+#   pre-commit install
+#
+# Rulare manuală pe tot repo-ul:
+#   pre-commit run --all-files
+#
+# Aceste hook-uri rulează automat la fiecare `git commit`.
+# Dacă un hook modifică fișiere, commit-ul eșuează — adaugă fișierele
+# modificate și reîncearcă commitul.
+
+repos:
+
+  # ─── Ruff: linting + autofix ─────────────────────────────────────────────
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4
+    hooks:
+      - id: ruff
+        args: ["--fix", "--exit-non-zero-on-fix"]
+        name: "ruff lint + autofix"
+      - id: ruff-format
+        name: "ruff format"
+
+  # ─── Verificări generale de fișiere ──────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+        name: "Elimină spații trailing"
+      - id: end-of-file-fixer
+        name: "Newline la finalul fișierelor"
+      - id: check-yaml
+        name: "Validare YAML"
+      - id: check-toml
+        name: "Validare TOML"
+      - id: check-merge-conflict
+        name: "Detectare markere de conflict Git"
+      - id: check-added-large-files
+        args: ["--maxkb=5000"]   # blochează fișiere > 5 MB (ex: modele AI accidentale)
+        name: "Blochează fișiere mari (>5MB)"
+      - id: debug-statements
+        name: "Detectează breakpoint() / pdb"
+        types: [python]
+
+  # ─── Verificare că tests/mock_data/ nu e commit-ată accidental ───────────
+  # (Datele generate sunt în .gitignore, dar hook-ul adaugă un strat extra)
+  - repo: local
+    hooks:
+      - id: no-mock-data
+        name: "Blochează commit-ul datelor mock generate"
+        language: fail
+        entry: "Nu commit-a tests/mock_data/ — generează-le local cu: python tools/mock_generator.py"
+        files: "^tests/mock_data/"
