@@ -225,7 +225,7 @@ class OCREngine(ABC):
         self,
         image: Image.Image,
         lang: str | None = None,
-    ) -> str:
+    ) -> tuple[str, list[dict]]:
         """Extract text from an in-memory PIL image.
 
         Parameters
@@ -238,8 +238,8 @@ class OCREngine(ABC):
 
         Returns
         -------
-        str
-            Extracted text (may be empty if nothing was recognised).
+        tuple[str, list[dict]]
+            Extracted text (may be empty if nothing was recognised) and a list of bounding boxes.
         """
         ...
 
@@ -248,7 +248,7 @@ class OCREngine(ABC):
         self,
         image_path: Path,
         lang: str | None = None,
-    ) -> str:
+    ) -> tuple[str, list[dict]]:
         """Extract text from an image file on disk.
 
         Parameters
@@ -260,7 +260,7 @@ class OCREngine(ABC):
 
         Returns
         -------
-        str
+        tuple[str, list[dict]]
         """
         ...
 
@@ -329,7 +329,7 @@ class TesseractOCREngine(OCREngine):
         """Build the Tesseract ``--oem`` / ``--psm`` config string."""
         return f"--oem {self._oem} --psm {self._psm}"
 
-    def _sync_ocr(self, image: Image.Image, lang: str) -> str:
+    def _sync_ocr(self, image: Image.Image, lang: str) -> tuple[str, list[dict]]:
         """Run preprocessing + Tesseract synchronously (for to_thread)."""
         import pytesseract
 
@@ -341,11 +341,33 @@ class TesseractOCREngine(OCREngine):
         t_preprocess = time.perf_counter() - t0
 
         # Run Tesseract
-        text = pytesseract.image_to_string(
+        data = pytesseract.image_to_data(
             processed,
             lang=lang,
             config=self._build_config(),
-        ).strip()
+            output_type=pytesseract.Output.DICT,
+        )
+
+        words_list = []
+        bboxes = []
+        for i in range(len(data['text'])):
+            text_part = data['text'][i].strip()
+            # conf can be '-1' for blocks/paragraphs, so we check > 0
+            if text_part and int(data['conf'][i]) > 0:
+                words_list.append(text_part)
+                left = data['left'][i]
+                top = data['top'][i]
+                width = data['width'][i]
+                height = data['height'][i]
+                bboxes.append({
+                    "text": text_part,
+                    "x0": left,
+                    "y0": top,
+                    "x1": left + width,
+                    "y1": top + height,
+                })
+        
+        text = " ".join(words_list)
 
         t_total = time.perf_counter() - t0
 
@@ -358,13 +380,13 @@ class TesseractOCREngine(OCREngine):
             (t_total - t_preprocess) * 1000,
         )
 
-        return text
+        return text, bboxes
 
     async def extract_text(
         self,
         image: Image.Image,
         lang: str | None = None,
-    ) -> str:
+    ) -> tuple[str, list[dict]]:
         """OCR an in-memory image with full preprocessing.
 
         Runs on a background thread to avoid blocking the event loop.
@@ -376,7 +398,7 @@ class TesseractOCREngine(OCREngine):
         self,
         image_path: Path,
         lang: str | None = None,
-    ) -> str:
+    ) -> tuple[str, list[dict]]:
         """Load an image from disk and OCR it.
 
         Parameters
@@ -388,8 +410,8 @@ class TesseractOCREngine(OCREngine):
 
         Returns
         -------
-        str
-            Extracted text.
+        tuple[str, list[dict]]
+            Extracted text and bounding boxes.
 
         Raises
         ------

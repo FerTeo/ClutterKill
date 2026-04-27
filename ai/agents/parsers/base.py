@@ -62,6 +62,7 @@ class ParsedDocument:
     is_ocr_result: bool = False
     metadata: dict = field(default_factory=dict)
     raw_pages: list[str] = field(default_factory=list)
+    word_bboxes: list[list[dict]] = field(default_factory=list)
 
 
 # ── Abstract Base Parser ─────────────────────────────────────────────────────

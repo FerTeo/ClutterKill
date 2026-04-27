@@ -139,7 +139,7 @@ class ImageParser(BaseDocumentParser):
 
         # OCR — the engine handles preprocessing + thread offloading
         engine = self._get_engine()
-        text = await engine.extract_text(image)
+        text, bboxes = await engine.extract_text(image)
 
         # Determine MIME type from Pillow format
         format_to_mime = {
@@ -166,4 +166,5 @@ class ImageParser(BaseDocumentParser):
             is_ocr_result=True,
             metadata=metadata,
             raw_pages=[text],
+            word_bboxes=[bboxes],
         )

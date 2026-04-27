@@ -65,7 +65,7 @@ def _extract_pdf_metadata(pdf: pdfplumber.PDF) -> dict:
 
 
 def _sync_extract(file_path: Path, max_pages: int | None) -> tuple[
-    list[str], int, dict, bool
+    list[str], list[list[dict]], int, dict, bool
 ]:
     """Synchronous core — runs inside a worker thread.
 
@@ -74,6 +74,7 @@ def _sync_extract(file_path: Path, max_pages: int | None) -> tuple[
     (raw_pages, total_page_count, metadata, is_image_only)
     """
     raw_pages: list[str] = []
+    word_bboxes: list[list[dict]] = []
     total_pages: int = 0
     metadata: dict = {}
 
@@ -89,6 +90,20 @@ def _sync_extract(file_path: Path, max_pages: int | None) -> tuple[
         for page in pages_to_read:
             text = (page.extract_text() or "").strip()
             raw_pages.append(text)
+            
+            # Extract bounding boxes
+            words = page.extract_words()
+            page_bboxes = []
+            for w in words:
+                page_bboxes.append({
+                    "text": w["text"],
+                    "x0": w["x0"],
+                    "y0": w["top"],
+                    "x1": w["x1"],
+                    "y1": w["bottom"],
+                })
+            word_bboxes.append(page_bboxes)
+            
             if not text:
                 empty_count += 1
 
@@ -99,7 +114,7 @@ def _sync_extract(file_path: Path, max_pages: int | None) -> tuple[
         and (empty_count / pages_read) >= _IMAGE_ONLY_THRESHOLD
     )
 
-    return raw_pages, total_pages, metadata, is_image_only
+    return raw_pages, word_bboxes, total_pages, metadata, is_image_only
 
 
 # ── Parser ───────────────────────────────────────────────────────────────────
@@ -147,7 +162,7 @@ class PDFParser(BaseDocumentParser):
 
     async def _ocr_pages(
         self, file_path: Path, max_pages: int
-    ) -> list[str]:
+    ) -> tuple[list[str], list[list[dict]]]:
         """Render PDF pages as images and OCR each one.
 
         Uses ``pdfplumber``'s built-in page-to-image conversion
@@ -161,6 +176,7 @@ class PDFParser(BaseDocumentParser):
         """
         engine = self._get_engine()
         ocr_pages: list[str] = []
+        ocr_bboxes: list[list[dict]] = []
 
         def _render_page_images(
             fp: Path, n: int,
@@ -182,10 +198,11 @@ class PDFParser(BaseDocumentParser):
                 "OCR fallback: processing page %d/%d of '%s'",
                 idx + 1, len(page_images), file_path.name,
             )
-            text = await engine.extract_text(img)
+            text, bboxes = await engine.extract_text(img)
             ocr_pages.append(text)
+            ocr_bboxes.append(bboxes)
 
-        return ocr_pages
+        return ocr_pages, ocr_bboxes
 
     async def parse(
         self,
@@ -219,7 +236,7 @@ class PDFParser(BaseDocumentParser):
             "Parsing PDF '%s' (max_pages=%s)", file_path.name, effective_max
         )
 
-        raw_pages, total_pages, metadata, is_image_only = await asyncio.to_thread(
+        raw_pages, word_bboxes, total_pages, metadata, is_image_only = await asyncio.to_thread(
             _sync_extract, file_path, effective_max
         )
 
@@ -233,7 +250,7 @@ class PDFParser(BaseDocumentParser):
                 sum(1 for p in raw_pages if not p),
                 len(raw_pages),
             )
-            raw_pages = await self._ocr_pages(file_path, effective_max)
+            raw_pages, word_bboxes = await self._ocr_pages(file_path, effective_max)
             used_ocr = True
 
         full_text = "\n\n".join(page for page in raw_pages if page)
@@ -254,4 +271,5 @@ class PDFParser(BaseDocumentParser):
             is_ocr_result=used_ocr,
             metadata=metadata,
             raw_pages=raw_pages,
+            word_bboxes=word_bboxes,
         )
