@@ -11,6 +11,17 @@ line-length = 88
 indent-width = 4
 target-version = "py310"
 
+# Directoare excluse din linting
+extend-exclude = [
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".git",
+    "tests/mock_data",     # fișiere generate automat
+    "*.egg-info",
+    "dist",
+    "build",
+]
 [lint]
 select = [
     "E",    # pycodestyle errors
@@ -44,16 +55,3 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
-
-[exclude]
-# Directoare excluse din linting
-extend = [
-    ".venv",
-    "venv",
-    "__pycache__",
-    ".git",
-    "tests/mock_data",     # fișiere generate automat
-    "*.egg-info",
-    "dist",
-    "build",
-]
