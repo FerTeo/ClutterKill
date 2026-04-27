@@ -30,6 +30,7 @@ async def run_orchestrator(llm, user_input: str) -> str:
     # Import triggers @register decorators in each agent module
     import agents.database_agent
     import agents.readme_agent
+    import agents.critic_system
     from agents.registry import AGENTS
 
     prompt = _build_prompt(AGENTS)
