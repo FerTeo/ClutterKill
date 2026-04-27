@@ -15,7 +15,7 @@ def validate_proposal(decision: dict) -> list[str]:
     if "error" in decision:
         return [f"Formatul returnat nu a fost un JSON valid: {decision.get('raw_output')}"]
         
-    required_keys = ["new_name", "category", "confidence", "reasoning"]
+    required_keys = ["new_name", "category", "entities", "confidence", "reasoning"]
     for key in required_keys:
         if key not in decision:
             errors.append(f"Lipsește cheia obligatorie: '{key}'")
@@ -40,4 +40,13 @@ def validate_proposal(decision: dict) -> list[str]:
         except ValueError:
             errors.append("Confidence trebuie să fie un număr float.")
             
+    if "entities" in decision:
+        entities = decision["entities"]
+        if not isinstance(entities, list):
+            errors.append("Câmpul 'entities' trebuie să fie o listă.")
+        else:
+            for i, ent in enumerate(entities):
+                if not isinstance(ent, dict) or "label" not in ent or "text" not in ent:
+                    errors.append(f"Entitatea {i} este invalidă. Trebuie să conțină 'label' și 'text'.")
+                    
     return errors

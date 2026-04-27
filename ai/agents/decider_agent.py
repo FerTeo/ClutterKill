@@ -19,6 +19,7 @@ Rules:
 2. The JSON must have exactly the following keys:
    - "new_name": The proposed file name (e.g. "factura_ACME_2024.pdf"). Always include a valid extension based on the document type.
    - "category": One of [factura, contract, curs, reteta, imagine, unknown].
+   - "entities": A list of key entities extracted from the text. Each entity must have a "label" (e.g. "Data Facturii", "CUI", "Nume Emitent", "Nume Document", "Total de Plata") and the exact "text" as it appears in the document.
    - "confidence": A float between 0.0 and 1.0 representing how sure you are.
    - "reasoning": A short step-by-step thinking process (Chain of Thought) explaining why you chose this name.
 
