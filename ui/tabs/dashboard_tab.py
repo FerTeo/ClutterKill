@@ -1,3 +1,4 @@
+from PyQt6.QtCore import QTimer
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QFileDialog,
@@ -100,6 +101,10 @@ class DashboardTab(QWidget):
             "Aplicația a fost inițializată. Aștept configurarea folderelor."
         )
 
+        # Timer pentru simulare progres
+        self.progress_timer = QTimer()
+        self.progress_timer.timeout.connect(self.simulate_progress)
+
     def browse_source(self):
         folder = QFileDialog.getExistingDirectory(self, "Selectează Folder Sursă")
         if folder:
@@ -125,6 +130,18 @@ class DashboardTab(QWidget):
 
         self.log_message(f"🚀 Pornire scanare folder: {self.src_path.text()} ...")
         self.log_message(f"⚙️ Limita de pagini PDF: {self.page_limit_spin.value()}")
-        self.progress_bar.setValue(10)
-        # TODO: Integrare cu agenții AI pentru procesarea reală
+        self.progress_bar.setValue(0)
+        self.start_btn.setEnabled(False)
         self.log_message("Simulare: AI-ul analizează fișierele...")
+        self.progress_timer.start(100)  # Rulează simularea la fiecare 100ms
+
+    def simulate_progress(self):
+        val = self.progress_bar.value()
+        if val < 100:
+            self.progress_bar.setValue(val + 2)
+            if val % 20 == 0:
+                self.log_message(f"Se procesează pachetul {val//20 + 1}...")
+        else:
+            self.progress_timer.stop()
+            self.start_btn.setEnabled(True)
+            self.log_message("✅ Scanare finalizată! (Test simulat completat)")

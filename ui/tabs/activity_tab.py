@@ -63,7 +63,7 @@ class ActivityTab(QWidget):
             if log["undo_available"]:
                 undo_btn = QPushButton("↩️ Undo")
                 undo_btn.clicked.connect(
-                    lambda checked, a_id=log["id"]: self.handle_undo(a_id)
+                    lambda checked, a_id=log["id"], r=row: self.handle_undo(a_id, r)
                 )
                 self.table.setCellWidget(row, 4, undo_btn)
             else:
@@ -71,7 +71,7 @@ class ActivityTab(QWidget):
                 lbl.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.table.setItem(row, 4, lbl)
 
-    def handle_undo(self, activity_id: str):
+    def handle_undo(self, activity_id: str, row: int):
         reply = QMessageBox.question(
             self,
             "Confirmare Undo",
@@ -88,7 +88,16 @@ class ActivityTab(QWidget):
                     "Undo Reușit",
                     f"Acțiunea a fost anulată.\nCalea restaurată: {result.get('restored_path')}",
                 )
-                self.refresh_data()
+                # WORKAROUND UI: Schimbăm vizual starea direct în tabel
+                action_item = self.table.item(row, 1)
+                action_item.setText("UNDONE")
+                action_item.setForeground(Qt.GlobalColor.red)
+
+                # Înlocuim butonul cu textul N/A
+                lbl = QTableWidgetItem("N/A")
+                lbl.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.table.removeCellWidget(row, 4)
+                self.table.setItem(row, 4, lbl)
             else:
                 QMessageBox.warning(
                     self, "Eroare Undo", result.get("message", "Eroare necunoscută.")

@@ -130,4 +130,11 @@ class QuarantineTab(QWidget):
             QMessageBox.information(
                 self, "Succes", f"Fișierul a fost aprobat cu numele: {new_name}"
             )
-            self.refresh_data()  # Reîmprospătăm lista (ar trebui să dispară din carantină)
+            # WORKAROUND UI: Ștergem vizual elementul din listă pentru că datele din dummy DB nu se mută real
+            row = self.q_list.currentRow()
+            if row != -1:
+                self.q_list.takeItem(row)
+            self.current_q_item = None
+            self.suggested_name_edit.clear()
+            self.reason_text.clear()
+            self.preview_label.setText("Selectează un document.")
