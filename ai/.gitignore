@@ -22,6 +22,9 @@ models/
 # Generează-le local cu: python tools/mock_generator.py
 tests/mock_data/
 
+# ChromaDB Vector Store
+chroma_db/
+
 # Docker
 .docker/
 
