@@ -6,7 +6,7 @@ Acest document detaliază arhitectura de nivel înalt a aplicației ClutterKill 
 
 Sistemul este împărțit în trei straturi logice majore (Layere) care comunică între ele printr-un thread manager central:
 
-![Arhitectura Componentelor ClutterKill](arhitectura_componentelor.png)
+![Arhitectura Componentelor ClutterKill](images/arhitectura_componentelor.png)
 
 ### Detalierea Straturilor (Layere):
 * **Layer-ul de Prezentare (UI):** Dezvoltat nativ în **PyQt6**, acest strat expune elementele vizuale (tab-urile pentru Reguli, Carantină, Progres) și preia input-ul utilizatorului.
@@ -22,7 +22,7 @@ Sistemul este împărțit în trei straturi logice majore (Layere) care comunic�
 
 Diagrama de mai jos ilustrează ciclul de viață complet al unei operațiuni de scanare. Modelul evidențiază traseul logic pe care îl parcurge un fișier de la selectarea lui din sursă și până la destinația finală (sau carantină).
 
-![Fluxul de Lucru ClutterKill](app_workflow.png)
+![Fluxul de Lucru ClutterKill](images/app_workflow.png)
 
 ### Procesul pas cu pas:
 1. **Configurarea Inițială:** Utilizatorul scrie logica dorită într-un limbaj natural. `Agent 0` validează instant cerința și o stochează sub formă de regulă mașină.
