@@ -40,11 +40,14 @@ Ca utilizator avansat, vreau să pot scrie o regulă complexă sub formă de tex
 
 # Project Structure
 
+```text
 ClutterKill/
 ├── 📄 main.py                  # Punctul de intrare: lansează interfața grafică PyQt6
 ├── 📄 requirements.txt         # Dependințele: PyQt6, langchain, pydantic, pymupdf, pytest etc.
 ├── 📄 docker-compose.yml       # Setup-ul pentru containerul Ollama local
 ├── 📄 .gitignore               # Fișiere de ignorat (venv, test_data/, __pycache__)
+├── 📄 .pre-commit-config.yaml  # Configurarea hook-urilor pre-commit (Ruff etc.)
+├── 📄 README.md                # Documentația principală a proiectului
 │
 ├── 📂 docs/                    # DOCUMENTAȚIE (Pentru evaluarea MDS)
 │   ├── 📄 RAPORT_AI.md         # Raportul utilizării LLM-urilor în dezvoltare
@@ -87,6 +90,7 @@ ClutterKill/
     ├── 📄 test_core.py         # Unit tests pentru file_manager și undo
     └── 📂 evals/               
         └── test_agents.py      # Verifică dacă Agenții 0 și 2 scot JSON valid
+```
 
 ## 📁 Directory Architecture
 
