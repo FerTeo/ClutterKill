@@ -1,0 +1,11 @@
+PyQt6
+langchain
+langchain-community
+PyMuPDF
+pytesseract
+pydantic
+pytest
+ruff
+fpdf
+python-docx
+Pillow
