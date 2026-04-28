@@ -1,7 +1,0 @@
-# Ollama Modelfile — imports a local GGUF into Ollama
-# Usage: ollama create gemma4-local -f Modelfile
-
-FROM ./models/gemma-4-e2b-it-Q8_0.gguf
-
-PARAMETER num_ctx 8192
-PARAMETER num_gpu 99
