@@ -12,7 +12,7 @@ services:
     restart: unless-stopped
 
   app:
-    image: python:3.12-slim
+    build: .
     container_name: clutterkill_app
     depends_on:
       - ollama

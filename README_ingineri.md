@@ -75,7 +75,24 @@ curl -X POST http://localhost:11434/api/generate -d '{
 docker exec -it clutterkill_ollama ollama run ck-model "Clasifică documentul: Curs_MDS_Sem2.pdf"
 ```
 
-## 5. Oprirea și curățarea
+## 5. Testarea Cross-Platform (Backend / Teste Automate)
+
+Pentru ca dezvoltatorii de pe macOS, Windows și Linux să aibă un mediu absolut identic, proiectul folosește un `Dockerfile` pentru serviciul `app`. Acesta instalează la nivel de sistem dependențele necesare precum `tesseract-ocr` (pentru OCR) și `poppler-utils` (pentru procesare PDF).
+
+**ATENȚIE**: Containerul Docker **NU** este folosit pentru a rula interfața grafică (`main.py`). UI-ul se rulează exclusiv nativ. Containerul se folosește doar pentru teste automate și scripturi de dezvoltare!
+
+### Rularea testelor automate (pytest):
+```bash
+docker-compose run --rm app pytest
+```
+Această comandă garantează că toți dezvoltatorii rulează testele în același mediu controlat.
+
+### Rularea scripturilor utilitare:
+```bash
+docker-compose run --rm app python scripts/generate_mock_data.py
+```
+
+## 6. Oprirea și curățarea
 Când ați terminat sesiunea de dev/QA, puteți opri containerul folosind:
 ```bash
 docker-compose down
