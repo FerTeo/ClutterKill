@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  ollama:
+    image: ollama/ollama
+    container_name: clutterkill_ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+      - ./ai:/app/ai
+    restart: unless-stopped
+
+  app:
+    build: .
+    container_name: clutterkill_app
+    depends_on:
+      - ollama
+    volumes:
+      - .:/app
+    working_dir: /app
+    env_file:
+      - .env
+    command: tail -f /dev/null # Keep-alive container pentru rulare scripturi/teste
+
+volumes:
+  ollama_data:
