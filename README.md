@@ -136,4 +136,27 @@ To ensure consistent code quality and formatting, this project is configured to 
    pre-commit install
    ```
 
+
 Once installed, `ruff` will automatically format your code on `git commit`. If changes are made by the formatter, the commit will abort—simply `git add` the updated files and run `git commit` again.
+
+## 🐳 Docker & Local AI Setup
+
+The application leverages Docker to seamlessly run local AI models without complicating the host system.
+
+### Setup Instructions:
+1. Start the Docker containers:
+   ```bash
+   docker-compose up -d
+   ```
+2. Create the custom AI model (Gemma 2 based) configured for precision:
+   ```bash
+   docker exec -it clutterkill_ollama ollama create ck-model -f /app/ai/Modelfile
+   ```
+3. Verify the model is running:
+   ```bash
+   curl http://localhost:11434/api/tags
+   ```
+
+*Note: The `docker-compose.yml` configuration also provides environment variables (`AI_PROVIDER`, `GOOGLE_API_KEY`) to easily switch between local `ollama` processing and cloud-based alternatives like `google`.*
+
+For more detailed DevOps and QA instructions, please refer to [README_ingineri.md](README_ingineri.md).
