@@ -75,22 +75,43 @@ curl -X POST http://localhost:11434/api/generate -d '{
 docker exec -it clutterkill_ollama ollama run ck-model "Clasifică documentul: Curs_MDS_Sem2.pdf"
 ```
 
+### Varianta C: Apel prin Python (citind PDF-ul fals generat)
+Aceasta este metoda recomandată pentru a testa ecosistemul real (PyMuPDF extrage textul -> LangChain îl trimite către Ollama).
+
+**Pasul 1:** Generați PDF-ul de test fals (dacă nu l-ați generat deja):
+```bash
+docker-compose run --rm app python scripts/create_test_pdf.py
+```
+
+**Pasul 2:** Rulați scriptul de test care citește fizic PDF-ul și întreabă AI-ul:
+```bash
+docker-compose run --rm app python scripts/test_model_with_pdf.py
+```
+*(Acest script validează că rețeaua internă Docker funcționează, librăria PyMuPDF poate extrage text, iar containerul comunică perfect cu instanța Ollama pentru a procesa informația extrasă).*
+
 ## 5. Testarea Cross-Platform (Backend / Teste Automate)
 
 Pentru ca dezvoltatorii de pe macOS, Windows și Linux să aibă un mediu absolut identic, proiectul folosește un `Dockerfile` pentru serviciul `app`. Acesta instalează la nivel de sistem dependențele necesare precum `tesseract-ocr` (pentru OCR) și `poppler-utils` (pentru procesare PDF).
 
 **ATENȚIE**: Containerul Docker **NU** este folosit pentru a rula interfața grafică (`main.py`). UI-ul se rulează exclusiv nativ. Containerul se folosește doar pentru teste automate și scripturi de dezvoltare!
 
+**OBS:** momentan NU exista teste automate, dar Dockerfile este pregatit pentru ele.
 ### Rularea testelor automate (pytest):
 ```bash
 docker-compose run --rm app pytest
 ```
 Această comandă garantează că toți dezvoltatorii rulează testele în același mediu controlat.
 
-### Rularea scripturilor utilitare:
+### Rularea scripturilor utilitare (Ex: Generare PDF de test):
+Pentru a testa fluxul de lucru rapid, am pregătit un script minimal care creează un PDF fals denumit "Curs_MDS_Sem2.pdf" în `test_data/source`. Rulați-l din mediul containerizat astfel:
 ```bash
-docker-compose run --rm app python scripts/generate_mock_data.py
+docker-compose run --rm app python scripts/create_test_pdf.py
 ```
+*(Asigurați-vă că folosiți containerul `app`, deoarece are librăria `fpdf` deja instalată din `requirements.txt`)*
+
+**De reținut despre Ollama**:
+Când ați testat comanda `ollama run ck-model ...` și ați primit eroarea *`manifest: file does not exist`*, aceasta **NU** s-a referit la fișierul PDF de pe disc, ci la faptul că **modelul AI `ck-model` nu fusese încă instalat/creat** pe instanța voastră de Ollama! 
+Textul "Clasifică documentul: Curs_MDS_Sem2.pdf" este doar un text pe care i-l trimiteți agentului (el nu știe să caute fișiere pe disc, asta face scriptul Python). Asigurați-vă că rulați `docker exec -it clutterkill_ollama ollama create ck-model -f /app/ai/Modelfile` (Pasul 2) înainte de a-l apela!
 
 ## 6. Oprirea și curățarea
 Când ați terminat sesiunea de dev/QA, puteți opri containerul folosind:
