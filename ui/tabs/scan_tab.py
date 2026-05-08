@@ -1,0 +1,128 @@
+import time
+from PyQt6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QProgressBar,
+    QTextEdit,
+    QFileDialog,
+)
+from PyQt6.QtCore import QThread, pyqtSignal
+
+
+class MockScanThread(QThread):
+    progress_updated = pyqtSignal(int)
+    log_updated = pyqtSignal(str)
+    scan_finished = pyqtSignal()
+
+    def run(self):
+        self.log_updated.emit("Starting mock scan...")
+        for i in range(1, 101):
+            time.sleep(0.03)  # Simulate work without making it too slow
+            self.progress_updated.emit(i)
+            if i % 10 == 0:
+                self.log_updated.emit(
+                    f"Scanned {i * 12} files... found mock file issue at {i}%"
+                )
+
+        self.log_updated.emit("Mock scan finished.")
+        self.scan_finished.emit()
+
+
+class ScanTab(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout()
+
+        # Source layout
+        source_layout = QHBoxLayout()
+        self.source_label = QLabel("Source:")
+        self.source_input = QLineEdit()
+        self.source_input.setPlaceholderText("Select source directory...")
+        self.source_browse_btn = QPushButton("Browse")
+        self.source_browse_btn.clicked.connect(self.browse_source)
+        source_layout.addWidget(self.source_label)
+        source_layout.addWidget(self.source_input)
+        source_layout.addWidget(self.source_browse_btn)
+
+        # Destination layout
+        dest_layout = QHBoxLayout()
+        self.dest_label = QLabel("Destination:")
+        self.dest_input = QLineEdit()
+        self.dest_input.setPlaceholderText("Select destination directory...")
+        self.dest_browse_btn = QPushButton("Browse")
+        self.dest_browse_btn.clicked.connect(self.browse_dest)
+        dest_layout.addWidget(self.dest_label)
+        dest_layout.addWidget(self.dest_input)
+        dest_layout.addWidget(self.dest_browse_btn)
+
+        # Start button
+        self.start_btn = QPushButton("Start Scan")
+        self.start_btn.setObjectName(
+            "primaryButton"
+        )  # Apply primary button style from QSS
+        self.start_btn.clicked.connect(self.start_scan)
+
+        # Progress bar
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setValue(0)
+
+        # Log area
+        self.log_area = QTextEdit()
+        self.log_area.setReadOnly(True)
+
+        # Add all to main layout
+        layout.addLayout(source_layout)
+        layout.addLayout(dest_layout)
+        layout.addWidget(self.start_btn)
+        layout.addWidget(self.progress_bar)
+        layout.addWidget(QLabel("Logs:"))
+        layout.addWidget(self.log_area)
+
+        self.setLayout(layout)
+
+    def browse_source(self):
+        directory = QFileDialog.getExistingDirectory(self, "Select Source Directory")
+        if directory:
+            self.source_input.setText(directory)
+
+    def browse_dest(self):
+        directory = QFileDialog.getExistingDirectory(
+            self, "Select Destination Directory"
+        )
+        if directory:
+            self.dest_input.setText(directory)
+
+    def start_scan(self):
+        if not self.source_input.text() or not self.dest_input.text():
+            self.log_area.append(
+                "Please select both source and destination directories."
+            )
+            return
+
+        self.start_btn.setEnabled(False)
+        self.progress_bar.setValue(0)
+        self.log_area.clear()
+
+        # Initialize and start the mock scan thread
+        self.scan_thread = MockScanThread()
+        self.scan_thread.progress_updated.connect(self.update_progress)
+        self.scan_thread.log_updated.connect(self.append_log)
+        self.scan_thread.scan_finished.connect(self.scan_complete)
+        self.scan_thread.start()
+
+    def update_progress(self, value):
+        self.progress_bar.setValue(value)
+
+    def append_log(self, message):
+        self.log_area.append(message)
+
+    def scan_complete(self):
+        self.start_btn.setEnabled(True)
+        self.log_area.append("Scan completed successfully!")
