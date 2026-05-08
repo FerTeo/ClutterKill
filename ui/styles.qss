@@ -62,6 +62,48 @@ QTabBar::tab:hover:!selected {
     color: #ffffff;
 }
 
+/* Segmented Control Toggles */
+QPushButton.segmentToggle {
+    background-color: #2d2d2d;
+    color: #a0a0a0;
+    border: 1px solid #3d3d3d;
+    padding: 8px 16px;
+    font-weight: bold;
+}
+
+QPushButton.segmentToggle:checked {
+    background-color: #0078d4;
+    color: #ffffff;
+    border: 1px solid #0078d4;
+}
+
+QPushButton.segmentToggle:hover:!checked {
+    background-color: #3d3d3d;
+    color: #ffffff;
+}
+
+QPushButton#leftToggle {
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+    border-top-right-radius: 0px;
+    border-bottom-right-radius: 0px;
+    border-right: none;
+}
+
+QPushButton#rightToggle {
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+    border-left: none;
+}
+
+/* Drop Zone */
+QListWidget#dropZone {
+    border: 2px dashed #3d3d3d;
+    background-color: #1a1a1a;
+}
+
 /* QProgressBar */
 QProgressBar {
     background-color: #2d2d2d;

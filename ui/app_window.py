@@ -1,5 +1,6 @@
 from PyQt6.QtWidgets import QMainWindow, QTabWidget, QVBoxLayout, QWidget
 from ui.tabs.scan_tab import ScanTab
+from ui.tabs.rules_tab import RulesTab
 
 
 class AppWindow(QMainWindow):
@@ -22,4 +23,8 @@ class AppWindow(QMainWindow):
         self.scan_tab = ScanTab()
         self.tabs.addTab(self.scan_tab, "Scan")
 
-        # (Future tabs like Rules, History, Quarantine will go here later)
+        # Add the RulesTab
+        self.rules_tab = RulesTab()
+        self.tabs.addTab(self.rules_tab, "Rules")
+
+        # (Future tabs like History, Quarantine will go here later)
