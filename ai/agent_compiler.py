@@ -53,6 +53,15 @@ User instruction: "{user_prompt}"
 Extract the category, folder structure, and naming convention.
 If the naming convention is not explicitly stated, use a default placeholder like "{{original_filename}}" or infer a sensible one if the context implies it.
 
+IMPORTANT: You must return ONLY the raw JSON object containing the actual values. Do NOT return a JSON schema, and do NOT wrap your answer in "properties".
+
+Example of valid output:
+{{
+  "category": "factura",
+  "folder_structure": "Facturi",
+  "naming_convention": "factura_data.pdf"
+}}
+
 {format_instructions}
 """
 
