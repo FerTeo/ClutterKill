@@ -26,6 +26,7 @@ import json
 import logging
 from typing import Any
 
+
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field, ValidationError
@@ -42,10 +43,13 @@ _MAX_RETRIES = 2
 #  Pydantic schema — the contract for every extraction result
 # =====================================================================
 
+
 class ExtractedEntity(BaseModel):
     """A single named entity or data point extracted from a document."""
 
-    field_name: str = Field(..., description="Canonical field name (e.g. 'full_name', 'date_of_birth').")
+    field_name: str = Field(
+        ..., description="Canonical field name (e.g. 'full_name', 'date_of_birth')."
+    )
     value: str = Field(..., description="Extracted value exactly as it appears.")
     confidence: float = Field(
         default=1.0,
@@ -63,12 +67,13 @@ class ExtractionResult(BaseModel):
     """Complete extraction output for one document."""
 
     document_type: str = Field(
-        ..., description="Identified document type (e.g. 'invoice', 'identity_card', 'medical_record')."
+        ...,
+        description="Identified document type (e.g. 'invoice', 'identity_card', 'medical_record').",
     )
     summary: str = Field(
-        default="", 
+        default="",
         max_length=200,
-        description="Rezumat tehnic (Emitent, Dată, Sumă, Tip) de maxim 200 caractere."
+        description="Rezumat tehnic (Emitent, Dată, Sumă, Tip) de maxim 200 caractere.",
     )
     entities: list[ExtractedEntity] = Field(
         default_factory=list, description="All extracted entities."
@@ -138,7 +143,10 @@ Rules:
 _EXTRACTION_PROMPT = ChatPromptTemplate.from_messages(
     [
         ("system", _SYSTEM_PROMPT),
-        ("human", "Extract structured data from the following document text:\n\n---\n{document_text}\n---"),
+        (
+            "human",
+            "Extract structured data from the following document text:\n\n---\n{document_text}\n---",
+        ),
     ]
 )
 
@@ -163,6 +171,7 @@ _REPAIR_PROMPT = ChatPromptTemplate.from_messages(
 # =====================================================================
 #  ExtractorAgent
 # =====================================================================
+
 
 class ExtractorAgent:
     """Thinking extraction agent backed by a local Ollama LLM.
@@ -200,7 +209,9 @@ class ExtractorAgent:
         ExtractionError
             If the LLM fails to produce valid JSON after all retries.
         """
-        logger.info("ExtractorAgent: starting extraction (%d chars)", len(document_text))
+        logger.info(
+            "ExtractorAgent: starting extraction (%d chars)", len(document_text)
+        )
 
         raw_output = self._chain.invoke({"document_text": document_text})
         logger.debug("Raw LLM output:\n%s", raw_output)
@@ -262,9 +273,7 @@ class ExtractorAgent:
     @staticmethod
     def _validate(data: dict) -> ExtractionResult:
         """Map raw JSON dict → ExtractionResult pydantic model."""
-        entities = [
-            ExtractedEntity(**ent) for ent in data.get("entities", [])
-        ]
+        entities = [ExtractedEntity(**ent) for ent in data.get("entities", [])]
         return ExtractionResult(
             document_type=data.get("document_type", "unknown"),
             summary=data.get("summary", ""),
@@ -276,6 +285,7 @@ class ExtractorAgent:
 # =====================================================================
 #  Custom exception
 # =====================================================================
+
 
 class ExtractionError(RuntimeError):
     """Raised when the agent cannot produce a valid extraction."""
@@ -297,10 +307,10 @@ if __name__ == "__main__":
     agent = ExtractorAgent()
     result = agent.extract(sample_text)
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Document type : {result.document_type}")
     print(f"Summary       : {result.summary}")
     print(f"Thinking      : {result.raw_thinking[:200]}…")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     for ent in result.entities:
         print(f"  {ent.field_name:20s} = {ent.value:30s}  (conf: {ent.confidence:.1f})")
