@@ -1,6 +1,8 @@
 PyQt6
 langchain
 langchain-community
+langchain-ollama
+langchain-core
 PyMuPDF
 pytesseract
 pydantic
