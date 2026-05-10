@@ -222,5 +222,5 @@ class ScanTab(QWidget):
         self.start_btn.setEnabled(True)
         if added_count > 0:
             self.log_area.append(
-                f"\n💡 Mergi la tab-ul 'Quarantine' pentru a aproba sau respinge fișierele."
+                "\n💡 Mergi la tab-ul 'Quarantine' pentru a aproba sau respinge fișierele."
             )
