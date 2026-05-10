@@ -1,5 +1,5 @@
-import sys
 from ai.agent_extractor import ExtractorAgent
+
 
 def test_emag_invoice():
     emag_text = """
@@ -21,7 +21,7 @@ def test_emag_invoice():
     """
 
     print("📄 Procesare conținut factură eMAG...")
-    
+
     try:
         agent = ExtractorAgent()
         result = agent.extract(emag_text)
@@ -29,7 +29,7 @@ def test_emag_invoice():
         print("\n🤖 Rezultat complet JSON (Pydantic):")
         print(f"Tip Document: {result.document_type}")
         print(f"Summary Brut: {result.summary}")
-        
+
         print("\n🎯 Verificare Task 9 (Strict 200 caractere):")
         technical_summary = result.get_technical_summary()
         print(f"Length: {len(technical_summary)} chars")
@@ -37,6 +37,7 @@ def test_emag_invoice():
 
     except Exception as e:
         print(f"\n❌ Eroare la comunicarea cu ExtractorAgent: {e}")
+
 
 if __name__ == "__main__":
     test_emag_invoice()

@@ -1,10 +1,11 @@
 import os
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 from ai.tools import extract_text_from_pdf, extract_text_from_image
+
 
 def create_test_image(path: str):
     """Creează o imagine simplă cu text pentru testarea OCR-ului."""
-    img = Image.new('RGB', (400, 150), color = (255, 255, 255))
+    img = Image.new("RGB", (400, 150), color=(255, 255, 255))
     d = ImageDraw.Draw(img)
     # Folosim fontul default deoarece Pillow îl are mereu la îndemână
     d.text((20, 50), "Testare extragere imagine OCR", fill=(0, 0, 0))
@@ -30,6 +31,7 @@ def main():
     print(f"\nExtragere text din {img_path}:")
     img_text = extract_text_from_image(img_path)
     print(f"[{img_text}]")
+
 
 if __name__ == "__main__":
     main()

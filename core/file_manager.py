@@ -4,6 +4,7 @@ from typing import Union
 
 from core.undo_manager import undo_manager
 
+
 def move_and_rename_file(
     src: Union[str, Path], dest: Union[str, Path], new_name: str
 ) -> Path:

@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 def extract_text_from_pdf(path: Union[str, Path], max_pages: int = 10) -> str:
     """
     Extrage textul dintr-un fișier PDF folosind PyMuPDF.
-    
+
     Pentru a optimiza consumul de memorie și procesare, se limitează
     numărul maxim de pagini citite (util pentru documente foarte mari).
 
@@ -39,12 +39,12 @@ def extract_text_from_pdf(path: Union[str, Path], max_pages: int = 10) -> str:
     try:
         text_content = []
         doc = fitz.open(file_path)
-        
+
         pages_to_read = min(len(doc), max_pages)
         for page_num in range(pages_to_read):
             page = doc[page_num]
             text_content.append(page.get_text())
-            
+
         doc.close()
         return "\n".join(text_content).strip()
     except Exception as e:

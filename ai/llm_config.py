@@ -38,16 +38,17 @@ logger = logging.getLogger(__name__)
 # ─── Defaults (match docker-compose.yml & .env.example) ─────────────
 _DEFAULT_PROVIDER = "ollama"
 _DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
-_DEFAULT_REQUEST_TIMEOUT = 120.0    # seconds — OCR docs can be big
+_DEFAULT_REQUEST_TIMEOUT = 120.0  # seconds — OCR docs can be big
 
 # Model registry — one entry per Modelfile
-MODEL_CLASSIFIER = "ck-model"           # ai/Modelfile
-MODEL_EXTRACTOR = "ck-extractor"        # ai/Modelfile.extractor
+MODEL_CLASSIFIER = "ck-model"  # ai/Modelfile
+MODEL_EXTRACTOR = "ck-extractor"  # ai/Modelfile.extractor
 
 
 # =====================================================================
 #  Public API
 # =====================================================================
+
 
 def get_llm(
     *,
