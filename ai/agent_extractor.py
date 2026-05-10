@@ -24,9 +24,9 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Optional
+from typing import Any
 
-from langchain_core.messages import HumanMessage, SystemMessage
+
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field, ValidationError
@@ -43,10 +43,13 @@ _MAX_RETRIES = 2
 #  Pydantic schema — the contract for every extraction result
 # =====================================================================
 
+
 class ExtractedEntity(BaseModel):
     """A single named entity or data point extracted from a document."""
 
-    field_name: str = Field(..., description="Canonical field name (e.g. 'full_name', 'date_of_birth').")
+    field_name: str = Field(
+        ..., description="Canonical field name (e.g. 'full_name', 'date_of_birth')."
+    )
     value: str = Field(..., description="Extracted value exactly as it appears.")
     confidence: float = Field(
         default=1.0,
@@ -64,12 +67,13 @@ class ExtractionResult(BaseModel):
     """Complete extraction output for one document."""
 
     document_type: str = Field(
-        ..., description="Identified document type (e.g. 'invoice', 'identity_card', 'medical_record')."
+        ...,
+        description="Identified document type (e.g. 'invoice', 'identity_card', 'medical_record').",
     )
     summary: str = Field(
-        default="", 
+        default="",
         max_length=200,
-        description="Rezumat tehnic (Emitent, Dată, Sumă, Tip) de maxim 200 caractere."
+        description="Rezumat tehnic (Emitent, Dată, Sumă, Tip) de maxim 200 caractere.",
     )
     entities: list[ExtractedEntity] = Field(
         default_factory=list, description="All extracted entities."
@@ -139,7 +143,10 @@ Rules:
 _EXTRACTION_PROMPT = ChatPromptTemplate.from_messages(
     [
         ("system", _SYSTEM_PROMPT),
-        ("human", "Extract structured data from the following document text:\n\n---\n{document_text}\n---"),
+        (
+            "human",
+            "Extract structured data from the following document text:\n\n---\n{document_text}\n---",
+        ),
     ]
 )
 
