@@ -67,7 +67,9 @@ class ExtractionResult(BaseModel):
         ..., description="Identified document type (e.g. 'invoice', 'identity_card', 'medical_record')."
     )
     summary: str = Field(
-        default="", description="One-sentence summary of the document content."
+        default="", 
+        max_length=200,
+        description="Rezumat tehnic (Emitent, Dată, Sumă, Tip) de maxim 200 caractere."
     )
     entities: list[ExtractedEntity] = Field(
         default_factory=list, description="All extracted entities."
@@ -76,6 +78,10 @@ class ExtractionResult(BaseModel):
         default="",
         description="The agent's chain-of-thought reasoning (kept for audit).",
     )
+
+    def get_technical_summary(self) -> str:
+        """Returnează STRICT rezumatul tehnic de maxim 200 de caractere (Task 9)."""
+        return self.summary[:200]
 
 
 # =====================================================================
@@ -110,7 +116,7 @@ Return your answer as a single JSON object with this schema:
 {{
   "thinking": "<your full chain-of-thought from steps 1-3>",
   "document_type": "<identified type>",
-  "summary": "<one-sentence summary>",
+  "summary": "<STRICT: 'Emitent: [X], Dată: [Y], Sumă: [Z], Tip: [W]'. Limitat la max 200 caractere. Dacă o informație lipsește, scrie N/A.>",
   "entities": [
     {{
       "field_name": "<canonical_field_name>",
