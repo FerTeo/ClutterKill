@@ -13,16 +13,13 @@ def create_test_image(path: str):
     img.save(path)
     print(f"✅ Imagine de test creată: {path}")
 
-
 def main():
     print("--- Testare Tool-uri Extracție ---")
-
+    
     # 1. Testare PDF
     pdf_path = "Curs_MDS_Sem2.pdf"
     if not os.path.exists(pdf_path):
-        print(
-            f"Atenție: {pdf_path} nu a fost găsit. Te rog generează-l mai întâi cu create_test_pdf.py."
-        )
+        print(f"Atenție: {pdf_path} nu a fost găsit. Te rog generează-l mai întâi cu create_test_pdf.py.")
     else:
         print(f"\nExtragere text din {pdf_path}:")
         pdf_text = extract_text_from_pdf(pdf_path)
