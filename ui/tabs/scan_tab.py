@@ -1,4 +1,5 @@
-import time
+from pathlib import Path
+
 from PyQt6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -12,24 +13,115 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import QThread, pyqtSignal
 
+from core.quarantine_db import quarantine_db
 
-class MockScanThread(QThread):
+# Categorii de fișiere bazate pe extensie (placeholder până la integrarea AI)
+EXTENSION_CATEGORIES = {
+    ".pdf": "Documente/PDF",
+    ".doc": "Documente/Word",
+    ".docx": "Documente/Word",
+    ".txt": "Documente/Text",
+    ".rtf": "Documente/Text",
+    ".xlsx": "Documente/Excel",
+    ".xls": "Documente/Excel",
+    ".csv": "Documente/CSV",
+    ".pptx": "Documente/PowerPoint",
+    ".ppt": "Documente/PowerPoint",
+    ".jpg": "Imagini",
+    ".jpeg": "Imagini",
+    ".png": "Imagini",
+    ".gif": "Imagini",
+    ".bmp": "Imagini",
+    ".svg": "Imagini",
+    ".zip": "Arhive",
+    ".rar": "Arhive",
+    ".7z": "Arhive",
+    ".tar": "Arhive",
+    ".gz": "Arhive",
+    ".py": "Cod",
+    ".js": "Cod",
+    ".html": "Cod",
+    ".css": "Cod",
+    ".java": "Cod",
+    ".mp3": "Audio",
+    ".wav": "Audio",
+    ".mp4": "Video",
+    ".avi": "Video",
+    ".mkv": "Video",
+}
+
+
+class ScanThread(QThread):
+    """
+    Thread real de scanare care:
+    1. Parcurge recursiv folderul sursă
+    2. Categorizează fișierele după extensie (până la integrarea AI)
+    3. Adaugă fiecare fișier în quarantine_db pentru review-ul utilizatorului
+    """
+
     progress_updated = pyqtSignal(int)
     log_updated = pyqtSignal(str)
-    scan_finished = pyqtSignal()
+    scan_finished = pyqtSignal(int)  # emite numărul total de fișiere adăugate
+
+    def __init__(self, source_dir: str, dest_dir: str):
+        super().__init__()
+        self.source_dir = Path(source_dir)
+        self.dest_dir = Path(dest_dir)
 
     def run(self):
-        self.log_updated.emit("Starting mock scan...")
-        for i in range(1, 101):
-            time.sleep(0.03)  # Simulate work without making it too slow
-            self.progress_updated.emit(i)
-            if i % 10 == 0:
+        # Colectăm toate fișierele din source (recursiv)
+        files = [f for f in self.source_dir.rglob("*") if f.is_file()]
+        total = len(files)
+
+        if total == 0:
+            self.log_updated.emit("⚠️ Niciun fișier găsit în folderul sursă.")
+            self.scan_finished.emit(0)
+            return
+
+        self.log_updated.emit(f"🔍 {total} fișiere găsite. Se începe scanarea...")
+
+        added_count = 0
+        skipped_count = 0
+
+        # Preluăm fișierele deja existente în carantină (pentru a evita duplicatele)
+        existing_paths = {r["original_path"] for r in quarantine_db.get_all()}
+
+        for i, file_path in enumerate(files):
+            str_path = str(file_path)
+
+            # Verificăm dacă fișierul e deja în carantină
+            if str_path in existing_paths:
+                skipped_count += 1
                 self.log_updated.emit(
-                    f"Scanned {i * 12} files... found mock file issue at {i}%"
+                    f"⏭️ {file_path.name} — deja în carantină, skip"
+                )
+            else:
+                # Categorizare pe bază de extensie
+                ext = file_path.suffix.lower()
+                category = EXTENSION_CATEGORIES.get(ext, "Altele")
+                proposed_folder = str(self.dest_dir / category)
+
+                quarantine_db.add(
+                    original_path=str_path,
+                    ai_proposed_name=file_path.name,
+                    ai_proposed_folder=proposed_folder,
+                    reason=f"Categorizat automat după extensie: {ext or 'fără extensie'}",
+                )
+                added_count += 1
+
+                self.log_updated.emit(
+                    f"📄 {file_path.name} → 📂 {category}"
                 )
 
-        self.log_updated.emit("Mock scan finished.")
-        self.scan_finished.emit()
+            # Actualizăm progress bar-ul
+            progress = int((i + 1) / total * 100)
+            self.progress_updated.emit(progress)
+
+        self.log_updated.emit(
+            f"\n✅ Scanare completă! {added_count} fișiere adăugate, "
+            f"{skipped_count} existente (skip)."
+        )
+        self.scan_finished.emit(added_count)
 
 
 class ScanTab(QWidget):
@@ -102,7 +194,7 @@ class ScanTab(QWidget):
     def start_scan(self):
         if not self.source_input.text() or not self.dest_input.text():
             self.log_area.append(
-                "Please select both source and destination directories."
+                "⚠️ Selectează atât folderul sursă cât și cel destinație."
             )
             return
 
@@ -110,8 +202,11 @@ class ScanTab(QWidget):
         self.progress_bar.setValue(0)
         self.log_area.clear()
 
-        # Initialize and start the mock scan thread
-        self.scan_thread = MockScanThread()
+        # Pornim thread-ul real de scanare
+        self.scan_thread = ScanThread(
+            source_dir=self.source_input.text(),
+            dest_dir=self.dest_input.text(),
+        )
         self.scan_thread.progress_updated.connect(self.update_progress)
         self.scan_thread.log_updated.connect(self.append_log)
         self.scan_thread.scan_finished.connect(self.scan_complete)
@@ -123,6 +218,9 @@ class ScanTab(QWidget):
     def append_log(self, message):
         self.log_area.append(message)
 
-    def scan_complete(self):
+    def scan_complete(self, added_count):
         self.start_btn.setEnabled(True)
-        self.log_area.append("Scan completed successfully!")
+        if added_count > 0:
+            self.log_area.append(
+                f"\n💡 Mergi la tab-ul 'Quarantine' pentru a aproba sau respinge fișierele."
+            )
