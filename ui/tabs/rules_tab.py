@@ -10,6 +10,7 @@ from PyQt6.QtWidgets import (
     QAbstractItemView,
     QTextEdit,
     QGraphicsOpacityEffect,
+    QMessageBox,
 )
 from PyQt6.QtCore import (
     Qt,
@@ -17,7 +18,28 @@ from PyQt6.QtCore import (
     QEasingCurve,
     QSequentialAnimationGroup,
     QTimer,
+    QThread,
+    pyqtSignal,
 )
+
+from ai.agent_compiler import CompilerAgent, CompiledRule
+
+
+class CompilerWorker(QThread):
+    finished_signal = pyqtSignal(object)  # Emits the CompiledRule object
+    error_signal = pyqtSignal(str)  # Emits error message
+
+    def __init__(self, prompt: str):
+        super().__init__()
+        self.prompt = prompt
+
+    def run(self):
+        try:
+            agent = CompilerAgent()
+            rule = agent.compile(self.prompt)
+            self.finished_signal.emit(rule)
+        except Exception as e:
+            self.error_signal.emit(str(e))
 
 
 class RulesTab(QWidget):
@@ -162,6 +184,48 @@ class RulesTab(QWidget):
         self.stacked_widget.setCurrentIndex(id)
 
     def on_save_clicked(self):
+        current_index = self.stacked_widget.currentIndex()
+        if current_index == 1:
+            # AI Mode
+            user_prompt = self.ai_prompt.toPlainText().strip()
+            if not user_prompt:
+                QMessageBox.warning(
+                    self, "Avertisment", "Te rog să introduci o descriere a regulii."
+                )
+                return
+
+            self.btn_save.setEnabled(False)
+            self.btn_save.setText("Compiling (AI is thinking)...")
+
+            # Pornim thread-ul in background pentru a nu bloca interfata grafica
+            self.worker = CompilerWorker(user_prompt)
+            self.worker.finished_signal.connect(self.on_compile_success)
+            self.worker.error_signal.connect(self.on_compile_error)
+            self.worker.start()
+        else:
+            # Visual Mode (mock save for now)
+            self.save_success_label.show()
+            QTimer.singleShot(2500, self.save_success_label.hide)
+
+    def on_compile_success(self, rule: CompiledRule):
+        self.btn_save.setEnabled(True)
+        self.btn_save.setText("Save Rule")
+
         self.save_success_label.show()
-        # Hide it again automatically after 2.5 seconds
         QTimer.singleShot(2500, self.save_success_label.hide)
+
+        # Afisam JSON-ul pentru confirmare, pana cand vom implementa DB-ul
+        QMessageBox.information(
+            self,
+            "AI Rule Extracted",
+            f"AI a tradus regula cu succes:\n\n{rule.model_dump_json(indent=2)}",
+        )
+
+    def on_compile_error(self, error_msg: str):
+        self.btn_save.setEnabled(True)
+        self.btn_save.setText("Save Rule")
+        QMessageBox.critical(
+            self,
+            "Eroare Compilare AI",
+            f"Agentul AI nu a putut extrage regula:\n\n{error_msg}",
+        )
