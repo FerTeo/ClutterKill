@@ -1,5 +1,5 @@
 import os
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 from ai.tools import extract_text_from_pdf, extract_text_from_image
 
 def create_test_image(path: str):

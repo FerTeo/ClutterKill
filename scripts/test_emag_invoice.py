@@ -1,4 +1,3 @@
-import sys
 from ai.agent_extractor import ExtractorAgent
 
 def test_emag_invoice():
