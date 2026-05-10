@@ -5,6 +5,9 @@
 Curs_MDS_Sem2.pdf
 test_data/
 
+# SQLite database (generated at runtime)
+*.db
+
 # Python
 __pycache__/
 *.py[cod]
