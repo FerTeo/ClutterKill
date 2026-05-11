@@ -30,8 +30,14 @@ from __future__ import annotations
 
 import logging
 import os
+from dotenv import load_dotenv
 
+from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_ollama import ChatOllama
+
+# Încarcă variabilele de mediu din fișierul .env, dacă există
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +45,8 @@ logger = logging.getLogger(__name__)
 _DEFAULT_PROVIDER = "ollama"
 _DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
 _DEFAULT_REQUEST_TIMEOUT = 120.0  # seconds — OCR docs can be big
+
+_DEFAULT_GOOGLE_MODEL = "gemini-2.0-flash"
 
 # Model registry — one entry per Modelfile
 MODEL_CLASSIFIER = "ck-model"  # ai/Modelfile
@@ -56,35 +64,48 @@ def get_llm(
     temperature: float | None = None,
     num_ctx: int | None = None,
     timeout: float | None = None,
-) -> ChatOllama:
-    """Return a ChatOllama instance for the requested model.
+) -> BaseChatModel:
+    """Return a chat model instance based on chosen AI_PROVIDER.
 
     Parameters
     ----------
     model : str
-        Ollama model name. Use the module constants:
-        ``MODEL_CLASSIFIER`` (default) or ``MODEL_EXTRACTOR``.
+        Ollama model name or placeholder. For Google, uses the
+        defined DEFAULT_GOOGLE_MODEL override.
     temperature : float, optional
-        Override sampling temperature (model default: 0.1).
+        Override sampling temperature (default: 0.1).
     num_ctx : int, optional
-        Override context-window size.
+        Override context-window size (Ollama only).
     timeout : float, optional
         Override HTTP request timeout (default: 120 s).
 
     Returns
     -------
-    ChatOllama
+    BaseChatModel
         A LangChain chat-model instance ready for ``.invoke()`` /
         ``.ainvoke()`` / agent binding.
     """
     provider = os.getenv("AI_PROVIDER", _DEFAULT_PROVIDER).lower()
 
     if provider == "google":
-        # Future: return ChatGoogleGenerativeAI(...)
-        raise NotImplementedError(
-            "Google AI provider is not yet implemented. "
-            "Set AI_PROVIDER=ollama or leave unset."
+        api_key = os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            raise ValueError("GOOGLE_API_KEY is required when AI_PROVIDER='google'")
+
+        google_model = os.getenv("GOOGLE_MODEL_NAME", _DEFAULT_GOOGLE_MODEL)
+        temp = temperature if temperature is not None else 0.1
+
+        logger.info(
+            "Initializing ChatGoogleGenerativeAI  model=%s",
+            google_model,
         )
+
+        g_llm = ChatGoogleGenerativeAI(
+            model=google_model,
+            temperature=temp,
+            google_api_key=api_key,
+        )
+        return g_llm
 
     if provider != "ollama":
         raise ValueError(

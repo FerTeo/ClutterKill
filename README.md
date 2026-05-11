@@ -139,24 +139,48 @@ To ensure consistent code quality and formatting, this project is configured to 
 
 Once installed, `ruff` will automatically format your code on `git commit`. If changes are made by the formatter, the commit will abort—simply `git add` the updated files and run `git commit` again.
 
-## 🐳 Docker & Local AI Setup
+## 🐳 Environment & Local AI Setup
 
 The application leverages Docker to seamlessly run local AI models without complicating the host system.
 
-### Setup Instructions:
-1. Start the Docker containers:
+### Step-by-Step Setup Instructions:
+
+1. **Configure Environment Variables**:
    ```bash
-   docker-compose up -d
+   cp .env.example .env
    ```
-2. Create the custom AI model (Gemma 2 based) configured for precision:
+
+2. **Start the Docker container** (for Ollama):
    ```bash
+   docker-compose up -d ollama
+   ```
+
+3. **Pull base model and Create Custom AI Models**:
+   ClutterKill uses two distinct models for processing (Classifier and Extractor):
+   ```bash
+   # Pull the base model (Wait for the download to finish)
+   docker exec -it clutterkill_ollama ollama pull gemma2:2b
+   # Note: If you get a 'manifest does not exist' error on older machines, use 'gemma:2b' instead and update the Modelfiles.
+
+   # Create Agent 0 & 2 (Classifier)
    docker exec -it clutterkill_ollama ollama create ck-model -f /app/ai/Modelfile
+   
+   # Create Agent 1 (Extractor)
+   docker exec -it clutterkill_ollama ollama create ck-extractor -f /app/ai/Modelfile.extractor
    ```
-3. Verify the model is running:
+
+4. **Verify the models are running**:
    ```bash
    curl http://localhost:11434/api/tags
    ```
 
-*Note: The `docker-compose.yml` configuration also provides environment variables (`AI_PROVIDER`, `GOOGLE_API_KEY`) to easily switch between local `ollama` processing and cloud-based alternatives like `google`.*
+5. **Run the Application**:
+   Activate your virtual environment and run the graphical interface:
+   ```bash
+   source .venv/bin/activate
+   python main.py
+   ```
+
+*Note: The project configuration also provides environment variables (`AI_PROVIDER`, `GOOGLE_API_KEY`) to easily switch between local `ollama` processing and cloud-based alternatives like `google`.*
 
 For more detailed DevOps and QA instructions, please refer to [README_ingineri.md](README_ingineri.md).
