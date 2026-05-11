@@ -72,10 +72,16 @@ Original Filename: {original_filename}
 Instructions:
 1. If the Document Summary MATCHES the Rule Category, your status must be "move".
 2. If it DOES NOT match, or if you are unsure, your status must be "quarantine".
-3. Calculate the new filename based on the Naming Convention. If the naming convention is '{original_filename}', missing, or unclear, YOU MUST create a smart, descriptive, and short filename based on the Document Summary (e.g. 'Factura_ENEL_12_05_2023.pdf' or 'Curs_Analiza_MDS.pdf'). DO NOT keep chaotic original filenames like 'scan_123.pdf'.
-4. CRITICAL: The new filename MUST keep the exact same file extension as the Original Filename.
-5. If the status is "quarantine", the folder must be "Quarantine".
-6. If the status is "quarantine", the suggested_name MUST be exactly the Original Filename.
+3. Build the new filename using the Naming Convention as a TEMPLATE:
+   - The Naming Convention may contain camelCase or descriptive placeholder words like "abreviereaMateriei", "NumarulCursului", "Data", "Emitent", "Suma", etc.
+   - YOU MUST extract the actual values from the Document Summary and substitute them into each placeholder.
+   - Example: If Naming Convention is "abreviereaMateriei_Curs_NumarulCursului_Data" and the document is about "Algoritmi Avansati, Cursul 4, 01.01.2026", the result must be "AlgoritmiAvansati_Curs_4_01012026".
+   - If a placeholder value cannot be determined from the Document Summary, use a sensible short abbreviation (e.g. "Unknown").
+   - If the Naming Convention is literally "{{original_filename}}", keep the original filename unchanged.
+4. CRITICAL: The new filename MUST keep the exact same file extension as the Original Filename (e.g. .pdf, .docx).
+5. CRITICAL: Do NOT include spaces in the filename. Use underscores (_) instead.
+6. If the status is "quarantine", the folder must be "Quarantine".
+7. If the status is "quarantine", the suggested_name MUST be exactly the Original Filename.
 
 IMPORTANT: You must return ONLY the raw JSON object containing the actual values. Do NOT return a JSON schema, and do NOT wrap your answer in markdown fences (like ```json).
 
