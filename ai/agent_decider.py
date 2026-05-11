@@ -72,9 +72,10 @@ Original Filename: {original_filename}
 Instructions:
 1. If the Document Summary MATCHES the Rule Category, your status must be "move".
 2. If it DOES NOT match, or if you are unsure, your status must be "quarantine".
-3. Calculate the new filename based on the Naming Convention. If the naming convention includes {{original_filename}}, replace it with the actual original filename.
-4. If the status is "quarantine", the folder must be "Quarantine".
-5. If the status is "quarantine", the suggested_name MUST be exactly the Original Filename.
+3. Calculate the new filename based on the Naming Convention. If the naming convention is '{original_filename}', missing, or unclear, YOU MUST create a smart, descriptive, and short filename based on the Document Summary (e.g. 'Factura_ENEL_12_05_2023.pdf' or 'Curs_Analiza_MDS.pdf'). DO NOT keep chaotic original filenames like 'scan_123.pdf'.
+4. CRITICAL: The new filename MUST keep the exact same file extension as the Original Filename.
+5. If the status is "quarantine", the folder must be "Quarantine".
+6. If the status is "quarantine", the suggested_name MUST be exactly the Original Filename.
 
 IMPORTANT: You must return ONLY the raw JSON object containing the actual values. Do NOT return a JSON schema, and do NOT wrap your answer in markdown fences (like ```json).
 
