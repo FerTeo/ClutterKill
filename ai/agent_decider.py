@@ -8,16 +8,19 @@ Uses PydanticOutputParser with the class ActionDecision(status, suggested_name, 
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any, Literal
 
-from langchain_core.output_parsers import PydanticOutputParser
-from langchain_core.prompts import PromptTemplate
-from pydantic import BaseModel, Field
+from langchain_core.output_parsers import PydanticOutputParser, StrOutputParser
+from langchain_core.prompts import PromptTemplate, ChatPromptTemplate
+from pydantic import BaseModel, Field, field_validator
 
 from ai.llm_config import get_llm, MODEL_CLASSIFIER
 from ai.agent_compiler import CompiledRule
 
 logger = logging.getLogger(__name__)
+
+_MAX_RETRIES = 2
 
 # =====================================================================
 #  Pydantic schema — formatul deciziei
@@ -39,6 +42,14 @@ class ActionDecision(BaseModel):
         ...,
         description="Folderul de destinație. Dacă e 'quarantine', valoarea va fi 'Quarantine'.",
     )
+
+    @field_validator("suggested_name")
+    @classmethod
+    def sanitize_filename(cls, v: str) -> str:
+        """Asigură-te că numele fișierului nu conține caractere invalide."""
+        # Îndepărtăm caracterele care ar putea cauza erori de filepath
+        sanitized = re.sub(r'[<>:"/\\|?*]', "_", v)
+        return sanitized
 
 
 # =====================================================================
@@ -69,6 +80,18 @@ IMPORTANT: You must return ONLY the raw JSON object containing the actual values
 
 {format_instructions}
 """
+
+_REPAIR_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            "You previously attempted to output a JSON decision but your JSON was invalid or did not match the schema. "
+            "Fix the JSON below so it matches the required schema exactly. "
+            "Output ONLY valid JSON, nothing else.",
+        ),
+        ("human", "Broken output:\n{broken_json}\n\nValidation error:\n{error}"),
+    ]
+)
 
 # =====================================================================
 #  DeciderAgent
@@ -103,7 +126,8 @@ class DeciderAgent:
             },
         )
 
-        self._chain = self._prompt | self._llm | self._parser
+        self._chain = self._prompt | self._llm | StrOutputParser()
+        self._repair_chain = _REPAIR_PROMPT | self._llm | StrOutputParser()
 
     # ── public API ───────────────────────────────────────────────────
 
@@ -131,20 +155,41 @@ class DeciderAgent:
             original_filename,
             rule.category,
         )
-        try:
-            result = self._chain.invoke(
-                {
-                    "rule_category": rule.category,
-                    "rule_folder": rule.folder_structure,
-                    "rule_naming": rule.naming_convention,
-                    "document_summary": summary,
-                    "original_filename": original_filename,
-                }
-            )
-            return result
-        except Exception as e:
-            logger.error("Eroare în timpul deciziei: %s", e)
-            raise
+
+        raw_output = self._chain.invoke(
+            {
+                "rule_category": rule.category,
+                "rule_folder": rule.folder_structure,
+                "rule_naming": rule.naming_convention,
+                "document_summary": summary,
+                "original_filename": original_filename,
+            }
+        )
+
+        last_error: Exception | None = None
+        current_output = raw_output
+
+        for attempt in range(_MAX_RETRIES + 1):
+            try:
+                # Funcția self._parser.parse suportă markdown fences fallback din LangChain
+                return self._parser.parse(current_output)
+            except Exception as exc:
+                last_error = exc
+                logger.warning(
+                    "Parse attempt %d/%d failed: %s",
+                    attempt + 1,
+                    _MAX_RETRIES + 1,
+                    exc,
+                )
+                if attempt < _MAX_RETRIES:
+                    current_output = self._repair_chain.invoke(
+                        {"broken_json": current_output, "error": str(exc)}
+                    )
+
+        logger.error("Eroare în timpul deciziei (după retry-uri): %s", last_error)
+        raise ValueError(
+            f"Failed to parse decision after retries: {last_error}"
+        ) from last_error
 
 
 # ─── Quick self-test ─────────────────────────────────────────────────
@@ -156,29 +201,19 @@ if __name__ == "__main__":
     test_rule = CompiledRule(
         category="factură",
         folder_structure="Facturi_Luna_Curenta",
-        naming_convention="factura_{original_filename}",
+        naming_convention="factura_enel_10/20.pdf",  # intenționat cu caractere invalide pentru test
     )
 
     test_summary_match = "Emitent: ENEL SA, Dată: 12.05.2023, Sumă: 150 RON, Tip: Factură energie electrică."
-    test_summary_fail = "Emitent: N/A, Dată: N/A, Sumă: N/A, Tip: Poză pisică."
 
     test_filename = "doc_scanned_123.pdf"
 
     print(f"\n{'=' * 60}")
-    print("TEST 1: Document care se potrivește")
+    print("TEST 1: Sanitizare și Retry")
     try:
         decision1 = agent.decide(test_summary_match, test_filename, test_rule)
-        print("Output JSON:")
+        print("Output JSON (observă cum / a fost înlocuit):")
         print(decision1.model_dump_json(indent=2))
-    except Exception as e:
-        print(f"Error: {e}")
-
-    print(f"\n{'=' * 60}")
-    print("TEST 2: Document care NU se potrivește")
-    try:
-        decision2 = agent.decide(test_summary_fail, test_filename, test_rule)
-        print("Output JSON:")
-        print(decision2.model_dump_json(indent=2))
     except Exception as e:
         print(f"Error: {e}")
     print(f"{'=' * 60}\n")
