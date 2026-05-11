@@ -81,7 +81,6 @@ Instructions:
 4. CRITICAL: The new filename MUST keep the exact same file extension as the Original Filename (e.g. .pdf, .docx).
 5. CRITICAL: Do NOT include spaces in the filename. Use underscores (_) instead.
 6. If the status is "quarantine", the folder must be "Quarantine".
-7. If the status is "quarantine", the suggested_name MUST be exactly the Original Filename.
 
 IMPORTANT: You must return ONLY the raw JSON object containing the actual values. Do NOT return a JSON schema, and do NOT wrap your answer in markdown fences (like ```json).
 
