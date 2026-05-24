@@ -3,13 +3,13 @@ langchain
 langchain-community
 langchain-ollama
 langchain-core
+langchain-google-genai
 PyMuPDF
 pytesseract
 pydantic
 pytest
 ruff
-fpdf
+fpdf2
 python-docx
 Pillow
-langchain-google-genai
 python-dotenv

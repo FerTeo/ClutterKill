@@ -7,6 +7,7 @@ from ai.agent_compiler import CompilerAgent
 from ai.agent_extractor import ExtractorAgent
 from ai.agent_decider import DeciderAgent
 from ai.tools import extract_text_from_pdf, extract_text_from_image
+from core.file_manager import move_and_rename_file
 from core.quarantine_db import quarantine_db
 
 logger = logging.getLogger(__name__)
@@ -122,8 +123,6 @@ class ScanWorker(QThread):
 
                         # Mutăm și redenumim fișierul fizic imediat
                         try:
-                            from core.file_manager import move_and_rename_file
-
                             move_and_rename_file(
                                 str_path, proposed_folder, decision.suggested_name
                             )
