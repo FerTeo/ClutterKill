@@ -136,7 +136,9 @@ class HistoryTab(QWidget):
         if success:
             self.show_status("Undo reusit! Fisierul a fost readus.", "#4caf50")
         else:
-            self.show_status("Nu s-a putut face undo (fisierul nu mai exista?).", "#ff5c5c")
+            self.show_status(
+                "Nu s-a putut face undo (fisierul nu mai exista?).", "#ff5c5c"
+            )
 
         self.refresh()
 

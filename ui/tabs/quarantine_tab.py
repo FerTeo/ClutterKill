@@ -110,7 +110,9 @@ class QuarantineTab(QWidget):
         right_layout.addStretch()
 
         # Mesaj când nu sunt fișiere
-        self.empty_label = QLabel("✅ Niciun fișier în carantină!\nRulează un Scan pentru a adăuga fișiere.")
+        self.empty_label = QLabel(
+            "✅ Niciun fișier în carantină!\nRulează un Scan pentru a adăuga fișiere."
+        )
         self.empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.empty_label.setStyleSheet("color: #7d7d7d; font-size: 14px;")
         self.empty_label.hide()
