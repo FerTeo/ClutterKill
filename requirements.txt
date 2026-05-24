@@ -11,3 +11,5 @@ ruff
 fpdf
 python-docx
 Pillow
+langchain-google-genai
+python-dotenv

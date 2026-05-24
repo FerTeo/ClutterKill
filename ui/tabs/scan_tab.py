@@ -1,4 +1,3 @@
-import time
 from PyQt6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -10,26 +9,9 @@ from PyQt6.QtWidgets import (
     QTextEdit,
     QFileDialog,
 )
-from PyQt6.QtCore import QThread, pyqtSignal
 
 
-class MockScanThread(QThread):
-    progress_updated = pyqtSignal(int)
-    log_updated = pyqtSignal(str)
-    scan_finished = pyqtSignal()
-
-    def run(self):
-        self.log_updated.emit("Starting mock scan...")
-        for i in range(1, 101):
-            time.sleep(0.03)  # Simulate work without making it too slow
-            self.progress_updated.emit(i)
-            if i % 10 == 0:
-                self.log_updated.emit(
-                    f"Scanned {i * 12} files... found mock file issue at {i}%"
-                )
-
-        self.log_updated.emit("Mock scan finished.")
-        self.scan_finished.emit()
+from core.scan_worker import ScanWorker
 
 
 class ScanTab(QWidget):
@@ -62,6 +44,16 @@ class ScanTab(QWidget):
         dest_layout.addWidget(self.dest_input)
         dest_layout.addWidget(self.dest_browse_btn)
 
+        # Rule layout
+        rule_layout = QHBoxLayout()
+        self.rule_label = QLabel("AI Organizing Rule:")
+        self.rule_input = QLineEdit()
+        self.rule_input.setPlaceholderText(
+            "e.g., Pune facturile in folderul FacturiNou"
+        )
+        rule_layout.addWidget(self.rule_label)
+        rule_layout.addWidget(self.rule_input)
+
         # Start button
         self.start_btn = QPushButton("Start Scan")
         self.start_btn.setObjectName(
@@ -80,6 +72,7 @@ class ScanTab(QWidget):
         # Add all to main layout
         layout.addLayout(source_layout)
         layout.addLayout(dest_layout)
+        layout.addLayout(rule_layout)
         layout.addWidget(self.start_btn)
         layout.addWidget(self.progress_bar)
         layout.addWidget(QLabel("Logs:"))
@@ -100,9 +93,13 @@ class ScanTab(QWidget):
             self.dest_input.setText(directory)
 
     def start_scan(self):
-        if not self.source_input.text() or not self.dest_input.text():
+        if (
+            not self.source_input.text()
+            or not self.dest_input.text()
+            or not self.rule_input.text()
+        ):
             self.log_area.append(
-                "Please select both source and destination directories."
+                "⚠️ Selectează folderele și introdu o regulă de organizare AI."
             )
             return
 
@@ -110,8 +107,12 @@ class ScanTab(QWidget):
         self.progress_bar.setValue(0)
         self.log_area.clear()
 
-        # Initialize and start the mock scan thread
-        self.scan_thread = MockScanThread()
+        # Pornim worker-ul AI de scanare
+        self.scan_thread = ScanWorker(
+            source_dir=self.source_input.text(),
+            dest_dir=self.dest_input.text(),
+            user_rule=self.rule_input.text(),
+        )
         self.scan_thread.progress_updated.connect(self.update_progress)
         self.scan_thread.log_updated.connect(self.append_log)
         self.scan_thread.scan_finished.connect(self.scan_complete)
@@ -123,6 +124,9 @@ class ScanTab(QWidget):
     def append_log(self, message):
         self.log_area.append(message)
 
-    def scan_complete(self):
+    def scan_complete(self, added_count):
         self.start_btn.setEnabled(True)
-        self.log_area.append("Scan completed successfully!")
+        if added_count > 0:
+            self.log_area.append(
+                "\n💡 Mergi la tab-ul 'Quarantine' pentru a aproba sau respinge fișierele."
+            )
