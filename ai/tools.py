@@ -7,6 +7,8 @@ agenții AI pentru procesare.
 """
 
 import logging
+import platform
+import shutil
 from pathlib import Path
 from typing import Union
 
@@ -15,6 +17,20 @@ import pytesseract
 from PIL import Image
 
 logger = logging.getLogger(__name__)
+
+# Detectare automată cale Tesseract pe Windows
+if platform.system() == "Windows":
+    _win_paths = [
+        r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+        r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+        r"C:\Users\User\AppData\Local\Programs\Tesseract-OCR\tesseract.exe",
+    ]
+    _tesseract_found = shutil.which("tesseract")
+    if not _tesseract_found:
+        for _p in _win_paths:
+            if Path(_p).exists():
+                pytesseract.pytesseract.tesseract_cmd = _p
+                break
 
 
 def extract_text_from_pdf(path: Union[str, Path], max_pages: int = 10) -> str:

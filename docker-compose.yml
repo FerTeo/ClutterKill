@@ -10,18 +10,49 @@ services:
       - ollama_data:/root/.ollama
       - ./ai:/app/ai
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  ollama-setup:
+    image: ollama/ollama
+    container_name: clutterkill_ollama_setup
+    depends_on:
+      ollama:
+        condition: service_healthy
+    volumes:
+      - ollama_data:/root/.ollama
+      - ./ai:/app/ai
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    entrypoint: >
+      sh -c "
+        echo '=== ClutterKill: Initializing AI models ===' &&
+        ollama pull gemma2:2b &&
+        ollama create ck-model -f /app/ai/Modelfile &&
+        ollama create ck-extractor -f /app/ai/Modelfile.extractor &&
+        echo '=== All models ready ==='
+      "
+    restart: "no"
 
   app:
     build: .
     container_name: clutterkill_app
     depends_on:
-      - ollama
+      ollama:
+        condition: service_healthy
     volumes:
       - .:/app
     working_dir: /app
     env_file:
       - .env
-    command: tail -f /dev/null # Keep-alive container pentru rulare scripturi/teste
+    environment:
+      # Suprascrie URL-ul din .env cu hostname-ul intern Docker
+      - OLLAMA_BASE_URL=http://ollama:11434
+    command: tail -f /dev/null
 
 volumes:
   ollama_data:
