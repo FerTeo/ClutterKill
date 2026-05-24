@@ -179,9 +179,7 @@ class QuarantineDB:
         """
         conn = self._get_connection()
         try:
-            cursor = conn.execute(
-                "DELETE FROM quarantine WHERE id = ?", (record_id,)
-            )
+            cursor = conn.execute("DELETE FROM quarantine WHERE id = ?", (record_id,))
             conn.commit()
             return cursor.rowcount > 0
         finally:

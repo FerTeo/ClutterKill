@@ -2,7 +2,7 @@
 Extraction Tools — ai/tools.py
 
 Acest modul conține funcții utilitare pentru extragerea textului din
-diferite tipuri de fișiere (PDF, imagini), folosite ulterior de către
+diferite tipuri de fișiere (PDF, imagini, Word), folosite ulterior de către
 agenții AI pentru procesare.
 """
 
@@ -12,6 +12,7 @@ import shutil
 from pathlib import Path
 from typing import Union
 
+import docx  # python-docx
 import fitz  # PyMuPDF
 import pytesseract
 from PIL import Image
@@ -90,4 +91,30 @@ def extract_text_from_image(path: Union[str, Path]) -> str:
         return text.strip()
     except Exception as e:
         logger.error(f"Eroare la extragerea textului din imagine ({file_path}): {e}")
+        return ""
+
+
+def extract_text_from_docx(path: Union[str, Path]) -> str:
+    """
+    Extrage textul dintr-un fișier Word (.docx) folosind python-docx.
+
+    Parcurge toate paragrafele documentului și le concatenează cu newline.
+
+    Args:
+        path: Calea către fișierul .docx.
+
+    Returns:
+        Textul extras din document ca string. Returnează un string gol în caz de eroare.
+    """
+    file_path = Path(path)
+    if not file_path.exists():
+        logger.error(f"Fișierul Word nu a fost găsit: {file_path}")
+        return ""
+
+    try:
+        doc = docx.Document(str(file_path))
+        paragraphs = [para.text for para in doc.paragraphs if para.text.strip()]
+        return "\n".join(paragraphs).strip()
+    except Exception as e:
+        logger.error(f"Eroare la extragerea textului din Word ({file_path}): {e}")
         return ""

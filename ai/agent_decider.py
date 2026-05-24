@@ -60,6 +60,8 @@ _SYSTEM_PROMPT_TEMPLATE = """\
 You are an expert decision-making agent for the ClutterKill system.
 Your job is to analyze a document summary and a set of organization rules, and decide if the document should be moved to the correct folder or placed in quarantine.
 
+{format_instructions}
+
 Rule Category: {rule_category}
 Target Folder: {rule_folder}
 Naming Convention: {rule_naming}
@@ -82,9 +84,7 @@ Instructions:
 5. CRITICAL: Do NOT include spaces in the filename. Use underscores (_) instead.
 6. If the status is "quarantine", the folder must be "Quarantine".
 
-IMPORTANT: You must return ONLY the raw JSON object containing the actual values. Do NOT return a JSON schema, and do NOT wrap your answer in markdown fences (like ```json).
-
-{format_instructions}
+CRITICAL: You must return ONLY the raw JSON object containing the ACTUAL values based on your decision. Do NOT return a JSON schema. Do NOT return properties definitions. DO NOT echo back the format instructions.
 """
 
 _REPAIR_PROMPT = ChatPromptTemplate.from_messages(
@@ -215,7 +215,7 @@ if __name__ == "__main__":
     test_filename = "doc_scanned_123.pdf"
 
     print(f"\n{'=' * 60}")
-    print("TEST 1: Sanitizare și Retry")
+    print("TEST 1: Sanitizare si Retry")
     try:
         decision1 = agent.decide(test_summary_match, test_filename, test_rule)
         print("Output JSON (observă cum / a fost înlocuit):")
