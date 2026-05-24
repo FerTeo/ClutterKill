@@ -6,7 +6,11 @@ from PyQt6.QtCore import QThread, pyqtSignal
 from ai.agent_compiler import CompilerAgent
 from ai.agent_extractor import ExtractorAgent
 from ai.agent_decider import DeciderAgent
-from ai.tools import extract_text_from_pdf, extract_text_from_image
+from ai.tools import (
+    extract_text_from_pdf,
+    extract_text_from_image,
+    extract_text_from_docx,
+)
 from core.file_manager import move_and_rename_file
 from core.quarantine_db import quarantine_db
 
@@ -94,6 +98,8 @@ class ScanWorker(QThread):
                         text = extract_text_from_pdf(file_path)
                     elif ext in [".png", ".jpg", ".jpeg", ".bmp", ".tiff"]:
                         text = extract_text_from_image(file_path)
+                    elif ext == ".docx":
+                        text = extract_text_from_docx(file_path)
                     elif ext in [".txt", ".csv", ".md"]:
                         text = file_path.read_text(errors="ignore")
                     else:
