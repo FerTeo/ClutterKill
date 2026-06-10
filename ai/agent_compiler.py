@@ -115,6 +115,7 @@ class CompilerAgent:
         logger.info("CompilerAgent: compiling prompt: '%s'", user_prompt)
         try:
             import time
+
             max_attempts = 3
             for attempt in range(max_attempts):
                 try:
@@ -122,7 +123,9 @@ class CompilerAgent:
                     return result
                 except Exception as loop_e:
                     if "429" in str(loop_e) and attempt < max_attempts - 1:
-                        logger.warning(f"API Rate Limit Hit (429) in Compiler. Sleeping 15s... (Attempt {attempt+1}/{max_attempts})")
+                        logger.warning(
+                            f"API Rate Limit Hit (429) in Compiler. Sleeping 15s... (Attempt {attempt + 1}/{max_attempts})"
+                        )
                         time.sleep(15)
                     else:
                         raise loop_e

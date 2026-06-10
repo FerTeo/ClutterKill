@@ -166,6 +166,7 @@ class DeciderAgent:
         )
 
         import time
+
         max_attempts = 3
         for attempt in range(max_attempts):
             try:
@@ -181,7 +182,9 @@ class DeciderAgent:
                 break
             except Exception as e:
                 if "429" in str(e) and attempt < max_attempts - 1:
-                    logger.warning(f"API Rate Limit Hit (429) in Decider. Sleeping 15s... (Attempt {attempt+1}/{max_attempts})")
+                    logger.warning(
+                        f"API Rate Limit Hit (429) in Decider. Sleeping 15s... (Attempt {attempt + 1}/{max_attempts})"
+                    )
                     time.sleep(15)
                 else:
                     raise e

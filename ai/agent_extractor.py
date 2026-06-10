@@ -201,13 +201,22 @@ class ExtractorAgent:
                 response = self._llm.invoke(prompt_val)
                 raw_output = response.content
                 if isinstance(raw_output, list):
-                    raw_output = " ".join([str(part.get("text", part)) if isinstance(part, dict) else str(part) for part in raw_output])
+                    raw_output = " ".join(
+                        [
+                            str(part.get("text", part))
+                            if isinstance(part, dict)
+                            else str(part)
+                            for part in raw_output
+                        ]
+                    )
                 elif not isinstance(raw_output, str):
                     raw_output = str(raw_output)
                 break
             except Exception as e:
                 if "429" in str(e) and attempt < max_attempts - 1:
-                    logger.warning(f"API Rate Limit Hit (429) in Extractor. Sleeping 15s... (Attempt {attempt+1}/{max_attempts})")
+                    logger.warning(
+                        f"API Rate Limit Hit (429) in Extractor. Sleeping 15s... (Attempt {attempt + 1}/{max_attempts})"
+                    )
                     time.sleep(15)
                 else:
                     raise e

@@ -93,31 +93,40 @@ def describe_image(path: Union[str, Path]) -> str:
         if provider == "google":
             from google import genai
             import time
-            
+
             api_key = os.getenv("GOOGLE_API_KEY")
             client = genai.Client(api_key=api_key)
             google_model = os.getenv("GOOGLE_MODEL_NAME", _DEFAULT_GOOGLE_MODEL)
-            
+
             prompt = "Analyze this image and suggest a concise, 2-3 word descriptive filename for it. Use PascalCase. DO NOT INCLUDE ANY EXTENSION like .jpeg or .png in your reply. Example: Gray_Cottage, Rural_Stop_Sign, Yellow_Corvette. Reply ONLY with the exact name."
-            
+
             from PIL import Image
+
             img = Image.open(file_path)
-            
+
             try:
-                response = client.models.generate_content(model=google_model, contents=[prompt, img])
+                response = client.models.generate_content(
+                    model=google_model, contents=[prompt, img]
+                )
                 return response.text.strip()
             except Exception as e:
                 if "429" in str(e):
-                    logger.warning("API Rate Limit Hit (429). Sleeping 15 seconds and retrying...")
+                    logger.warning(
+                        "API Rate Limit Hit (429). Sleeping 15 seconds and retrying..."
+                    )
                     time.sleep(15)
-                    response = client.models.generate_content(model=google_model, contents=[prompt, img])
+                    response = client.models.generate_content(
+                        model=google_model, contents=[prompt, img]
+                    )
                     return response.text.strip()
                 else:
                     raise e
 
         elif provider == "ollama":
             base_url = os.getenv("OLLAMA_BASE_URL", _DEFAULT_OLLAMA_BASE_URL)
-            ollama_llm = ChatOllama(model="ck-vision", base_url=base_url, temperature=0.1)
+            ollama_llm = ChatOllama(
+                model="ck-vision", base_url=base_url, temperature=0.1
+            )
             response = ollama_llm.invoke([message])
             return str(response.content).strip()
 

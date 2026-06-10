@@ -199,9 +199,10 @@ class QuarantineTab(QWidget):
             pixmap = QPixmap(str(path))
             # Scalare la dimensiunea maxima a scroll_area dar pastrand aspectul
             scaled_pixmap = pixmap.scaled(
-                350, 450, 
-                Qt.AspectRatioMode.KeepAspectRatio, 
-                Qt.TransformationMode.SmoothTransformation
+                350,
+                450,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
             )
             self.preview_label.setPixmap(scaled_pixmap)
         else:

@@ -52,7 +52,7 @@ class ScanTab(QWidget):
         self.rule_combo = QComboBox()
         self.refresh_rules_btn = QPushButton("Refresh Preseturi")
         self.refresh_rules_btn.clicked.connect(self.load_saved_rules)
-        
+
         rule_layout.addWidget(self.rule_label)
         rule_layout.addWidget(self.rule_combo, stretch=1)
         rule_layout.addWidget(self.refresh_rules_btn)
@@ -92,7 +92,7 @@ class ScanTab(QWidget):
         else:
             self.rule_combo.setEnabled(True)
             for r in rules:
-                self.rule_combo.addItem(r['name'])
+                self.rule_combo.addItem(r["name"])
 
     def browse_source(self):
         directory = QFileDialog.getExistingDirectory(self, "Select Source Directory")
@@ -152,14 +152,18 @@ class ScanTab(QWidget):
             color = "#a6e3a1"  # Verde
         elif "eroare" in msg.lower() or "lipsă" in msg.lower():
             color = "#f38ba8"  # Roșu
-        elif "carantină" in msg.lower() or "quarantine" in msg.lower() or "skip" in msg.lower():
+        elif (
+            "carantină" in msg.lower()
+            or "quarantine" in msg.lower()
+            or "skip" in msg.lower()
+        ):
             color = "#f9e2af"  # Galben
         elif "procesare" in msg.lower() or "vision" in msg.lower():
             color = "#cba6f7"  # Mov
-            
+
         html = f"""
         <div style="background-color: #313244; border-left: 4px solid {color}; border-radius: 6px; padding: 10px; margin-bottom: 5px;">
-            <span style="color: #cdd6f4; font-size: 13px;">{msg.replace('\\n', '<br>')}</span>
+            <span style="color: #cdd6f4; font-size: 13px;">{msg.replace("\\n", "<br>")}</span>
         </div>
         """
         self.log_area.append(html)

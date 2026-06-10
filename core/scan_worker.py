@@ -71,14 +71,14 @@ class ScanWorker(QThread):
 
         # Sanitizare rapidă pentru a fi un nume de fișier valid (păstrăm litere, cifre, underscore, cratimă)
         cleaned_desc = re.sub(r"[^a-zA-Z0-9_\-]", "", desc.replace(" ", "_"))
-        
+
         if not cleaned_desc:
             return original_filename
-            
+
         # Asigură-te că nu se dublează extensia
         if cleaned_desc.lower().endswith(ext.lower()):
             return cleaned_desc
-            
+
         return cleaned_desc + ext
 
     def run(self):
@@ -93,30 +93,38 @@ class ScanWorker(QThread):
             return
 
         # 2. Încărcăm Șablonul (Template-ul) din DB
-        if not hasattr(self, 'user_rule') or not self.user_rule.strip():
+        if not hasattr(self, "user_rule") or not self.user_rule.strip():
             self.log_updated.emit("Niciun preset nu a fost selectat!")
             self.scan_finished.emit(0)
             return
-            
+
         import core.rules_db as rules_db
         from ai.agent_compiler import CompiledRule
-        
+
         rule_record = rules_db.get_rule_by_name(self.user_rule)
         if not rule_record:
-            self.log_updated.emit(f"Eroare: Presetul '{self.user_rule}' nu a fost găsit în baza de date.")
+            self.log_updated.emit(
+                f"Eroare: Presetul '{self.user_rule}' nu a fost găsit în baza de date."
+            )
             return
 
         # Creăm un mock CompiledRule pentru a-l pasa mai departe Decider-ului
         compiled_rule = CompiledRule(
-            category=rule_record['query'],
-            folder_structure=rule_record['folder_template'],
-            naming_convention=rule_record['naming_template']
+            category=rule_record["query"],
+            folder_structure=rule_record["folder_template"],
+            naming_convention=rule_record["naming_template"],
         )
-        
-        self.log_updated.emit(f"Preset încărcat: {compiled_rule.folder_structure} | {compiled_rule.naming_convention}")
+
+        self.log_updated.emit(
+            f"Preset încărcat: {compiled_rule.folder_structure} | {compiled_rule.naming_convention}"
+        )
 
         # 3. Preluăm fișierele din sursă (ignorând fișierele ascunse macOS gen .DS_Store)
-        files = [f for f in self.source_dir.rglob("*") if f.is_file() and not f.name.startswith(".")]
+        files = [
+            f
+            for f in self.source_dir.rglob("*")
+            if f.is_file() and not f.name.startswith(".")
+        ]
         total = len(files)
 
         if total == 0:
@@ -148,7 +156,9 @@ class ScanWorker(QThread):
                         text = extract_text_from_pdf(file_path)
                     elif ext in [".png", ".jpg", ".jpeg", ".bmp", ".tiff"]:
                         ocr_text = extract_text_from_image(file_path)
-                        self.log_updated.emit("  Vision: Se analizează conținutul vizual...")
+                        self.log_updated.emit(
+                            "  Vision: Se analizează conținutul vizual..."
+                        )
                         vision_desc = describe_image(file_path)
                         text = f"Image Vision Analysis:\n{vision_desc}\n\nExtracted OCR Text:\n{ocr_text}"
                     elif ext == ".docx":
@@ -182,13 +192,23 @@ class ScanWorker(QThread):
                     if cat in ("any", "all"):
                         # Construim numele descriptiv direct din summary
                         naming = compiled_rule.naming_convention.strip()
-                        if naming == "descriptive_name_based_on_content" or naming == "":
+                        if (
+                            naming == "descriptive_name_based_on_content"
+                            or naming == ""
+                        ):
                             if "Image Vision Analysis:" in text:
-                                suggested = self._build_descriptive_name(text, file_path.name)
+                                suggested = self._build_descriptive_name(
+                                    text, file_path.name
+                                )
                             else:
-                                if hasattr(extraction_result, "suggested_filename") and extraction_result.suggested_filename:
+                                if (
+                                    hasattr(extraction_result, "suggested_filename")
+                                    and extraction_result.suggested_filename
+                                ):
                                     suggested = extraction_result.suggested_filename
-                                    if not suggested.lower().endswith(file_path.suffix.lower()):
+                                    if not suggested.lower().endswith(
+                                        file_path.suffix.lower()
+                                    ):
                                         suggested += file_path.suffix
                                 else:
                                     suggested = file_path.name
@@ -208,10 +228,13 @@ class ScanWorker(QThread):
                         )
                         logger.info(
                             "BYPASS (category=any): forțăm MOVE pentru %s -> %s",
-                            file_path.name, suggested,
+                            file_path.name,
+                            suggested,
                         )
                     else:
-                        decision = decider.decide(summary, file_path.name, compiled_rule)
+                        decision = decider.decide(
+                            summary, file_path.name, compiled_rule
+                        )
 
                     if decision.status == "move":
                         proposed_folder = str(self.dest_dir / decision.suggested_folder)
