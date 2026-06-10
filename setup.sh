@@ -24,22 +24,16 @@ else
   echo "[3/5] .env already exists — skipping."
 fi
 
-# 4. Ollama models (ÎN DOCKER EXACT CUM SCRIE ÎN README)
+# 4. Ollama models & App (ÎN DOCKER EXACT CUM SCRIE ÎN README)
 echo "[4/5] Setting up Ollama models (via Docker)..."
 if ! command -v docker &>/dev/null; then
   echo "  ERROR: Docker is required but not installed."
   exit 1
 fi
 
-docker-compose up -d ollama
-echo "  Waiting for Ollama to start..."
-sleep 15
-docker exec -it clutterkill_ollama ollama pull gemma2:2b || docker exec clutterkill_ollama ollama pull gemma2:2b
-docker exec -it clutterkill_ollama ollama pull llava:7b || docker exec clutterkill_ollama ollama pull llava:7b
-docker exec -it clutterkill_ollama ollama create ck-model -f /app/ai/Modelfile || docker exec clutterkill_ollama ollama create ck-model -f /app/ai/Modelfile
-docker exec -it clutterkill_ollama ollama create ck-extractor -f /app/ai/Modelfile.extractor || docker exec clutterkill_ollama ollama create ck-extractor -f /app/ai/Modelfile.extractor
-docker exec -it clutterkill_ollama ollama create ck-vision -f /app/ai/Modelfile.vision || docker exec clutterkill_ollama ollama create ck-vision -f /app/ai/Modelfile.vision
-echo "  Models created inside Docker container."
+# We build and start all services via docker-compose
+docker-compose up -d --build
+echo "  Docker containers started. Models are built into the image via Dockerfile."
 
 # 5. Tesseract (optional, for OCR on images)
 echo "[5/5] Checking Tesseract OCR..."

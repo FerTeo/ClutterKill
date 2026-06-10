@@ -2,7 +2,10 @@ version: '3.8'
 
 services:
   ollama:
-    image: ollama/ollama
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: ollama-service
     container_name: clutterkill_ollama
     ports:
       - "11434:11434"
@@ -17,31 +20,11 @@ services:
       retries: 10
       start_period: 30s
 
-  ollama-setup:
-    image: ollama/ollama
-    container_name: clutterkill_ollama_setup
-    depends_on:
-      ollama:
-        condition: service_healthy
-    volumes:
-      - ollama_data:/root/.ollama
-      - ./ai:/app/ai
-    environment:
-      - OLLAMA_HOST=http://ollama:11434
-    entrypoint: >
-      sh -c "
-        echo '=== ClutterKill: Initializing AI models ===' &&
-        ollama pull gemma2:2b &&
-        ollama pull llava:7b &&
-        ollama create ck-model -f /app/ai/Modelfile &&
-        ollama create ck-extractor -f /app/ai/Modelfile.extractor &&
-        ollama create ck-vision -f /app/ai/Modelfile.vision &&
-        echo '=== All models ready ==='
-      "
-    restart: "no"
-
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app-service
     container_name: clutterkill_app
     depends_on:
       ollama:

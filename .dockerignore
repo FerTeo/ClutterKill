@@ -1,0 +1,8 @@
+.venv/
+.git/
+__pycache__/
+*.pyc
+quarantine.db
+rules.db
+.env
+Quarantine/

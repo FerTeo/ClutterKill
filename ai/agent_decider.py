@@ -34,12 +34,12 @@ class ActionDecision(BaseModel):
         ...,
         description="Statusul deciziei: 'move' dacă fișierul corespunde regulii, 'quarantine' dacă nu sau dacă informațiile lipsesc.",
     )
-    suggested_name: str | None = Field(
-        None,
+    suggested_name: Optional[str] = Field(
+        default=None,
         description="Numele sugerat pentru fișier (conform naming_convention din regulă). Dacă e carantină, se păstrează numele original.",
     )
-    suggested_folder: str | None = Field(
-        None,
+    suggested_folder: Optional[str] = Field(
+        default=None,
         description="Folderul de destinație. Dacă e 'quarantine', valoarea va fi 'Quarantine'.",
     )
 
