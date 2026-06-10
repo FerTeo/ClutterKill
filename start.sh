@@ -2,6 +2,9 @@
 
 echo "🚀 Inițializare ClutterKill..."
 
+# Asigură-te că rulează containerul de AI
+docker-compose up -d ollama
+
 # 1. Verificăm dacă există Python
 if ! command -v python3 &> /dev/null
 then

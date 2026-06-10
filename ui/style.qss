@@ -6,7 +6,7 @@
 QWidget {
     background-color: #1e1e2e;
     color: #cdd6f4;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     font-size: 13px;
 }
 

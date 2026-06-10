@@ -34,19 +34,21 @@ class ActionDecision(BaseModel):
         ...,
         description="Statusul deciziei: 'move' dacă fișierul corespunde regulii, 'quarantine' dacă nu sau dacă informațiile lipsesc.",
     )
-    suggested_name: str = Field(
-        ...,
+    suggested_name: str | None = Field(
+        None,
         description="Numele sugerat pentru fișier (conform naming_convention din regulă). Dacă e carantină, se păstrează numele original.",
     )
-    suggested_folder: str = Field(
-        ...,
+    suggested_folder: str | None = Field(
+        None,
         description="Folderul de destinație. Dacă e 'quarantine', valoarea va fi 'Quarantine'.",
     )
 
     @field_validator("suggested_name")
     @classmethod
-    def sanitize_filename(cls, v: str) -> str:
+    def sanitize_filename(cls, v: str | None) -> str | None:
         """Asigură-te că numele fișierului nu conține caractere invalide."""
+        if not v:
+            return v
         # Îndepărtăm caracterele care ar putea cauza erori de filepath
         sanitized = re.sub(r'[<>:"/\\|?*]', "_", v)
         return sanitized

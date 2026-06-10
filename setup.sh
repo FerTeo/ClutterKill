@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# ClutterKill — First-time setup script (Linux / macOS)
+# ClutterKill — First-time setup script
 set -e
 
 echo "=== ClutterKill Setup ==="
 
-# 1. Python virtualenv
+# 1. Python virtualenv (Necesar pentru interfața grafică)
 if [ ! -d ".venv" ]; then
   echo "[1/5] Creating virtual environment..."
   python3 -m venv .venv
@@ -24,30 +24,22 @@ else
   echo "[3/5] .env already exists — skipping."
 fi
 
-# 4. Ollama models
-echo "[4/5] Setting up Ollama models..."
-if ! command -v ollama &>/dev/null; then
-  echo "  Ollama not found. Trying Docker..."
-  if command -v docker &>/dev/null && docker info &>/dev/null; then
-    docker-compose up -d ollama
-    echo "  Waiting for Ollama to start..."
-    sleep 15
-    docker exec clutterkill_ollama ollama pull gemma2:2b
-    docker exec clutterkill_ollama ollama create ck-model -f /app/ai/Modelfile
-    docker exec clutterkill_ollama ollama create ck-extractor -f /app/ai/Modelfile.extractor
-    echo "  Models created inside Docker container."
-  else
-    echo "  ERROR: Neither Ollama nor Docker is available."
-    echo "  Install Ollama from https://ollama.com or Docker from https://docker.com"
-    exit 1
-  fi
-else
-  # Ollama is installed locally
-  ollama pull gemma2:2b
-  ollama create ck-model -f ai/Modelfile
-  ollama create ck-extractor -f ai/Modelfile.extractor
-  echo "  Models created locally."
+# 4. Ollama models (ÎN DOCKER EXACT CUM SCRIE ÎN README)
+echo "[4/5] Setting up Ollama models (via Docker)..."
+if ! command -v docker &>/dev/null; then
+  echo "  ERROR: Docker is required but not installed."
+  exit 1
 fi
+
+docker-compose up -d ollama
+echo "  Waiting for Ollama to start..."
+sleep 15
+docker exec -it clutterkill_ollama ollama pull gemma2:2b || docker exec clutterkill_ollama ollama pull gemma2:2b
+docker exec -it clutterkill_ollama ollama pull llava:7b || docker exec clutterkill_ollama ollama pull llava:7b
+docker exec -it clutterkill_ollama ollama create ck-model -f /app/ai/Modelfile || docker exec clutterkill_ollama ollama create ck-model -f /app/ai/Modelfile
+docker exec -it clutterkill_ollama ollama create ck-extractor -f /app/ai/Modelfile.extractor || docker exec clutterkill_ollama ollama create ck-extractor -f /app/ai/Modelfile.extractor
+docker exec -it clutterkill_ollama ollama create ck-vision -f /app/ai/Modelfile.vision || docker exec clutterkill_ollama ollama create ck-vision -f /app/ai/Modelfile.vision
+echo "  Models created inside Docker container."
 
 # 5. Tesseract (optional, for OCR on images)
 echo "[5/5] Checking Tesseract OCR..."
@@ -64,5 +56,4 @@ fi
 
 echo ""
 echo "=== Setup complete! Run the app with: ==="
-echo "  source .venv/bin/activate"
-echo "  python main.py"
+echo "  bash start.sh"

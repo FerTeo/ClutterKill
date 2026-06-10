@@ -85,12 +85,14 @@ def get_llm(
         A LangChain chat-model instance ready for ``.invoke()`` /
         ``.ainvoke()`` / agent binding.
     """
-    provider = os.getenv("AI_PROVIDER", _DEFAULT_PROVIDER).lower()
+    api_key = os.getenv("GOOGLE_API_KEY", "").strip()
+    is_placeholder = api_key == "your_google_api_key_here" or not api_key
+
+    provider = "google" if not is_placeholder else "ollama"
 
     if provider == "google":
-        api_key = os.getenv("GOOGLE_API_KEY")
-        if not api_key:
-            raise ValueError("GOOGLE_API_KEY is required when AI_PROVIDER='google'")
+        if is_placeholder:
+            raise ValueError("GOOGLE_API_KEY is required and cannot be empty or the placeholder.")
 
         google_model = os.getenv("GOOGLE_MODEL_NAME", _DEFAULT_GOOGLE_MODEL)
         temp = temperature if temperature is not None else 0.1
