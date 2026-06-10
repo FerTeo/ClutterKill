@@ -58,13 +58,13 @@ class ActionDecision(BaseModel):
 
 _SYSTEM_PROMPT_TEMPLATE = """\
 You are an expert decision-making agent for the ClutterKill system.
-Your job is to analyze a document summary and a set of organization rules, and decide if the document should be moved to the correct folder or placed in quarantine.
+Your job is to analyze a document summary and decide the exact folder and filename based strictly on the provided templates.
 
 {format_instructions}
 
-Rule Category: {rule_category}
-Target Folder: {rule_folder}
-Naming Convention: {rule_naming}
+Preset Query/Intent: {rule_category}
+Target Folder Template: {rule_folder}
+Naming Convention Template: {rule_naming}
 
 Document Summary:
 {document_summary}
@@ -72,19 +72,22 @@ Document Summary:
 Original Filename: {original_filename}
 
 Instructions:
-1. If the Document Summary MATCHES the Rule Category, your status must be "move".
-2. If it DOES NOT match, or if you are unsure, your status must be "quarantine".
-3. Build the new filename using the Naming Convention as a TEMPLATE:
-   - The Naming Convention may contain camelCase or descriptive placeholder words like "abreviereaMateriei", "NumarulCursului", "Data", "Emitent", "Suma", etc.
-   - YOU MUST extract the actual values from the Document Summary and substitute them into each placeholder.
-   - Example: If Naming Convention is "abreviereaMateriei_Curs_NumarulCursului_Data" and the document is about "Algoritmi Avansati, Cursul 4, 01.01.2026", the result must be "AlgoritmiAvansati_Curs_4_01012026".
-   - If a placeholder value cannot be determined from the Document Summary, use a sensible short abbreviation (e.g. "Unknown").
-   - If the Naming Convention is literally "{{original_filename}}", keep the original filename unchanged.
-4. CRITICAL: The new filename MUST keep the exact same file extension as the Original Filename (e.g. .pdf, .docx).
-5. CRITICAL: Do NOT include spaces in the filename. Use underscores (_) instead.
-6. If the status is "quarantine", the folder must be "Quarantine".
+1. CHECK PRESET QUERY FIRST: Does the Document Summary match the Preset Query/Intent?
+   - The query might be broad (e.g., "Toate fișierele", "Pozele mele", "Orice imagine").
+   - If YES, or if you are UNSURE but it doesn't explicitly contradict the query -> status "move".
+   - ONLY if the Document explicitly contradicts the query (e.g., query is "Facturi emag" but the document is a "Poza cu un caine") -> status "quarantine".
+3. Build the TARGET FOLDER:
+   - The user wants all files to go directly into the main output folder (Flattened structure).
+   - Therefore, YOU MUST output exactly "." (a single dot) for the target folder.
+4. Build the NEW FILENAME using the Naming Convention Template:
+   - Similarly, replace ALL bracketed variables (e.g. `[Emitent]`, `[SubiectAI]`) with extracted/deduced values.
+   - Example: `[An]_[Emitent]_[SubiectAI]` -> `2023_eMAG_Laptop_Gaming`.
+   - If the template is literally "{{original_filename}}", keep the original filename.
+5. CRITICAL: The new filename MUST keep the exact same file extension as the Original Filename (e.g. .pdf, .docx, .jpeg).
+6. CRITICAL: Do NOT include spaces in the filename or folder name. Use underscores (_) or CamelCase instead.
+7. If the status is "quarantine", the folder must be exactly "Quarantine".
 
-CRITICAL: You must return ONLY the raw JSON object containing the ACTUAL values based on your decision. Do NOT return a JSON schema. Do NOT return properties definitions. DO NOT echo back the format instructions.
+CRITICAL: You must return ONLY the raw JSON object containing the ACTUAL evaluated folder and filename based on the templates.
 """
 
 _REPAIR_PROMPT = ChatPromptTemplate.from_messages(
@@ -162,15 +165,26 @@ class DeciderAgent:
             rule.category,
         )
 
-        raw_output = self._chain.invoke(
-            {
-                "rule_category": rule.category,
-                "rule_folder": rule.folder_structure,
-                "rule_naming": rule.naming_convention,
-                "document_summary": summary,
-                "original_filename": original_filename,
-            }
-        )
+        import time
+        max_attempts = 3
+        for attempt in range(max_attempts):
+            try:
+                raw_output = self._chain.invoke(
+                    {
+                        "rule_category": rule.category,
+                        "rule_folder": rule.folder_structure,
+                        "rule_naming": rule.naming_convention,
+                        "document_summary": summary,
+                        "original_filename": original_filename,
+                    }
+                )
+                break
+            except Exception as e:
+                if "429" in str(e) and attempt < max_attempts - 1:
+                    logger.warning(f"API Rate Limit Hit (429) in Decider. Sleeping 15s... (Attempt {attempt+1}/{max_attempts})")
+                    time.sleep(15)
+                else:
+                    raise e
 
         last_error: Exception | None = None
         current_output = raw_output

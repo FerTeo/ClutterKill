@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QLabel,
+    QComboBox,
     QLineEdit,
     QPushButton,
     QProgressBar,
@@ -12,6 +13,7 @@ from PyQt6.QtWidgets import (
 
 
 from core.scan_worker import ScanWorker
+import core.rules_db as rules_db
 
 
 class ScanTab(QWidget):
@@ -46,13 +48,14 @@ class ScanTab(QWidget):
 
         # Rule layout
         rule_layout = QHBoxLayout()
-        self.rule_label = QLabel("AI Organizing Rule:")
-        self.rule_input = QLineEdit()
-        self.rule_input.setPlaceholderText(
-            "e.g., Pune facturile in folderul FacturiNou"
-        )
+        self.rule_label = QLabel("Preset Formatare:")
+        self.rule_combo = QComboBox()
+        self.refresh_rules_btn = QPushButton("Refresh Preseturi")
+        self.refresh_rules_btn.clicked.connect(self.load_saved_rules)
+        
         rule_layout.addWidget(self.rule_label)
-        rule_layout.addWidget(self.rule_input)
+        rule_layout.addWidget(self.rule_combo, stretch=1)
+        rule_layout.addWidget(self.refresh_rules_btn)
 
         # Start button
         self.start_btn = QPushButton("Start Scan")
@@ -69,7 +72,6 @@ class ScanTab(QWidget):
         self.log_area = QTextEdit()
         self.log_area.setReadOnly(True)
 
-        # Add all to main layout
         layout.addLayout(source_layout)
         layout.addLayout(dest_layout)
         layout.addLayout(rule_layout)
@@ -79,6 +81,18 @@ class ScanTab(QWidget):
         layout.addWidget(self.log_area)
 
         self.setLayout(layout)
+        self.load_saved_rules()
+
+    def load_saved_rules(self):
+        self.rule_combo.clear()
+        rules = rules_db.get_all_rules()
+        if not rules:
+            self.rule_combo.addItem("Niciun preset salvat! Mergi în tab-ul Rules.")
+            self.rule_combo.setEnabled(False)
+        else:
+            self.rule_combo.setEnabled(True)
+            for r in rules:
+                self.rule_combo.addItem(r['name'])
 
     def browse_source(self):
         directory = QFileDialog.getExistingDirectory(self, "Select Source Directory")
@@ -96,22 +110,27 @@ class ScanTab(QWidget):
         if (
             not self.source_input.text()
             or not self.dest_input.text()
-            or not self.rule_input.text()
+            or not self.rule_combo.isEnabled()
+            or self.rule_combo.count() == 0
         ):
-            self.log_area.append(
-                "⚠️ Selectează folderele și introdu o regulă de organizare AI."
-            )
+            self.log_area.append("Selectează folderele și un preset valid.")
             return
 
+        source = self.source_input.text()
+        dest = self.dest_input.text()
+        rule_name = self.rule_combo.currentText()
+
+        # Disable UI
         self.start_btn.setEnabled(False)
         self.progress_bar.setValue(0)
         self.log_area.clear()
+        self.log_area.append("Se încarcă agenții AI...")
 
-        # Pornim worker-ul AI de scanare
+        # Start worker
         self.scan_thread = ScanWorker(
-            source_dir=self.source_input.text(),
-            dest_dir=self.dest_input.text(),
-            user_rule=self.rule_input.text(),
+            source_dir=source,
+            dest_dir=dest,
+            user_rule=rule_name,
         )
         self.scan_thread.progress_updated.connect(self.update_progress)
         self.scan_thread.log_updated.connect(self.append_log)
@@ -122,11 +141,32 @@ class ScanTab(QWidget):
         self.progress_bar.setValue(value)
 
     def append_log(self, message):
-        self.log_area.append(message)
+        # Scoatem spațiile de padding făcute pentru vechiul CMD
+        msg = message.strip()
+        if not msg:
+            return
+
+        # Stabilim o culoare de accent pe baza contextului
+        color = "#89b4fa"  # Albastru default
+        if "succes" in msg.lower() or "complet" in msg.lower():
+            color = "#a6e3a1"  # Verde
+        elif "eroare" in msg.lower() or "lipsă" in msg.lower():
+            color = "#f38ba8"  # Roșu
+        elif "carantină" in msg.lower() or "quarantine" in msg.lower() or "skip" in msg.lower():
+            color = "#f9e2af"  # Galben
+        elif "procesare" in msg.lower() or "vision" in msg.lower():
+            color = "#cba6f7"  # Mov
+            
+        html = f"""
+        <div style="background-color: #313244; border-left: 4px solid {color}; border-radius: 6px; padding: 10px; margin-bottom: 5px;">
+            <span style="color: #cdd6f4; font-size: 13px;">{msg.replace('\\n', '<br>')}</span>
+        </div>
+        """
+        self.log_area.append(html)
 
     def scan_complete(self, added_count):
         self.start_btn.setEnabled(True)
         if added_count > 0:
-            self.log_area.append(
-                "\n💡 Mergi la tab-ul 'Quarantine' pentru a aproba sau respinge fișierele."
+            self.append_log(
+                "Mergi la tab-ul 'Quarantine' pentru a aproba sau respinge fișierele."
             )

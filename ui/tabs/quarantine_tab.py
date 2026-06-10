@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import (
     QFileDialog,
 )
 from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QPixmap
 
 from core.quarantine_db import quarantine_db
 from core.file_manager import move_and_rename_file
@@ -111,7 +112,7 @@ class QuarantineTab(QWidget):
 
         # Mesaj când nu sunt fișiere
         self.empty_label = QLabel(
-            "✅ Niciun fișier în carantină!\nRulează un Scan pentru a adăuga fișiere."
+            "Niciun fișier în carantină!\nRulează un Scan pentru a adăuga fișiere."
         )
         self.empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.empty_label.setStyleSheet("color: #7d7d7d; font-size: 14px;")
@@ -169,7 +170,7 @@ class QuarantineTab(QWidget):
 
         for record in self.records:
             original_name = Path(record["original_path"]).name
-            self.file_list.addItem(f"📄 {original_name}")
+            self.file_list.addItem(f"{original_name}")
 
         # Selectăm primul fișier automat
         self.file_list.setCurrentRow(0)
@@ -192,12 +193,29 @@ class QuarantineTab(QWidget):
         self.proposed_folder_input.setText(record["ai_proposed_folder"])
         self.reason_lbl.setText(record.get("reason", "—") or "—")
 
+        # Incarcam imaginea daca este poza
+        path = Path(record["original_path"])
+        if path.exists() and path.suffix.lower() in [".png", ".jpg", ".jpeg", ".bmp"]:
+            pixmap = QPixmap(str(path))
+            # Scalare la dimensiunea maxima a scroll_area dar pastrand aspectul
+            scaled_pixmap = pixmap.scaled(
+                350, 450, 
+                Qt.AspectRatioMode.KeepAspectRatio, 
+                Qt.TransformationMode.SmoothTransformation
+            )
+            self.preview_label.setPixmap(scaled_pixmap)
+        else:
+            self.preview_label.setPixmap(QPixmap())
+            self.preview_label.setText("📄 Document (Fără preview)")
+
     def _clear_form(self):
         """Golește formularul."""
         self.original_path_lbl.setText("—")
         self.proposed_name_input.clear()
         self.proposed_folder_input.clear()
         self.reason_lbl.setText("—")
+        self.preview_label.clear()
+        self.preview_label.setText("Document Preview\n(Selectează un fișier din listă)")
 
     # ─── Actions ───────────────────────────────────────────────────────
 
@@ -214,7 +232,7 @@ class QuarantineTab(QWidget):
         dest_folder = self.proposed_folder_input.text().strip()
 
         if not new_name or not dest_folder:
-            self.show_status("⚠️ Completează numele și folderul!", "#ffa500")
+            self.show_status("Completează numele și folderul!", "#ffa500")
             return
 
         try:
@@ -226,16 +244,16 @@ class QuarantineTab(QWidget):
             # și apoi ștergem din carantină
             quarantine_db.remove(self.current_record["id"])
 
-            self.show_status("✔️ Fișier mutat cu succes!", "#4caf50")
+            self.show_status("Fișier mutat cu succes!", "#4caf50")
             self.refresh()
 
         except FileNotFoundError:
-            self.show_status("❌ Fișierul sursă nu mai există!", "#ff5c5c")
+            self.show_status("Fișierul sursă nu mai există!", "#ff5c5c")
             # Ștergem din carantină dacă fișierul nu mai există
             quarantine_db.remove(self.current_record["id"])
             self.refresh()
         except Exception as e:
-            self.show_status(f"❌ Eroare: {e}", "#ff5c5c")
+            self.show_status(f"Eroare: {e}", "#ff5c5c")
 
     def on_reject_clicked(self):
         """Reject: Șterge fișierul din carantină (fișierul rămâne unde era)."""
@@ -243,7 +261,7 @@ class QuarantineTab(QWidget):
             return
 
         quarantine_db.remove(self.current_record["id"])
-        self.show_status("❌ Fișier scos din carantină.", "#ff5c5c")
+        self.show_status("Fișier scos din carantină.", "#ff5c5c")
         self.refresh()
 
     def on_save_as_clicked(self):

@@ -49,7 +49,7 @@ class ExtractedEntity(BaseModel):
     field_name: str = Field(
         ..., description="Canonical field name (e.g. 'full_name', 'date_of_birth')."
     )
-    value: str = Field(..., description="Extracted value exactly as it appears.")
+    value: Any = Field(..., description="Extracted value exactly as it appears.")
     confidence: float = Field(
         default=1.0,
         ge=0.0,
@@ -71,15 +71,15 @@ class ExtractionResult(BaseModel):
     )
     summary: str = Field(
         default="",
-        max_length=200,
-        description="Rezumat tehnic (Emitent, Dată, Sumă, Tip) de maxim 200 caractere.",
+        max_length=500,
+        description="Dense 1-2 sentence summary containing key details.",
+    )
+    suggested_filename: str = Field(
+        default="",
+        description="A concise 2-3 word filename without any file extension.",
     )
     entities: list[ExtractedEntity] = Field(
         default_factory=list, description="All extracted entities."
-    )
-    raw_thinking: str = Field(
-        default="",
-        description="The agent's chain-of-thought reasoning (kept for audit).",
     )
 
     def get_technical_summary(self) -> str:
@@ -92,51 +92,29 @@ class ExtractionResult(BaseModel):
 # =====================================================================
 
 _SYSTEM_PROMPT = """\
-You are an expert data-extraction agent for the ClutterKill system.
-Your job is to extract structured information from raw document text
-that may come from OCR (noisy, misspelled, broken formatting).
+You are a fast, precise data-extraction agent. 
+Extract structured information from raw document text into JSON. 
+Do NOT output any reasoning, explanations, or conversational filler. 
 
-IMPORTANT: You are a THINKING agent.  Before extracting, you MUST
-reason step-by-step about the document.
-
-Follow this exact protocol:
-
-### Step 1 — IDENTIFY
-Determine the document type (invoice, ID card, contract, medical
-record, correspondence, etc.).  State your reasoning.
-
-### Step 2 — PLAN
-List the fields you expect to find for this document type.
-Mention any fields that are likely missing or corrupted.
-
-### Step 3 — EXTRACT
-For each field, extract the value.  If the text is ambiguous,
-state the ambiguity and pick the most likely interpretation.
-Assign a confidence score (0.0–1.0) to each extraction.
-
-### Step 4 — OUTPUT
-Return your answer as a single JSON object with this schema:
+Return your answer as a single JSON object with this exact schema:
 {{
-  "thinking": "<your full chain-of-thought from steps 1-3>",
-  "document_type": "<identified type>",
-  "summary": "<STRICT: 'Emitent: [X], Dată: [Y], Sumă: [Z], Tip: [W]'. Limitat la max 200 caractere. Dacă o informație lipsește, scrie N/A.>",
+  "document_type": "<identified type, e.g. invoice, contract, lab_work, unknown>",
+  "summary": "<Dense 1-2 sentence summary containing all key specific details (e.g. subject name, lab number, issuer, total amount, patient name). Limit to 200 chars.>",
+  "suggested_filename": "<A concise, 2-3 word descriptive filename. DO NOT include any file extension like .pdf or .docx. Example: Vodafone_Invoice, AI_Lab_1, Medical_Report. Use PascalCase.>",
   "entities": [
     {{
       "field_name": "<canonical_field_name>",
       "value": "<extracted value>",
       "confidence": <0.0-1.0>,
-      "reasoning": "<why you chose this value>"
+      "reasoning": "<1 sentence why you chose this>"
     }}
   ]
 }}
 
 Rules:
-- Output ONLY the JSON object, no markdown fences, no extra text.
-- Use snake_case for field_name values.
-- If a field is completely unreadable, set confidence to 0.0 and
-  value to "UNREADABLE".
-- Preserve original values exactly — do NOT normalize dates or names
-  unless they are clearly OCR errors.
+- Output ONLY valid JSON.
+- No markdown fences.
+- If unreadable, set value to "N/A" and confidence 0.0.
 """
 
 _EXTRACTION_PROMPT = ChatPromptTemplate.from_messages(
@@ -212,7 +190,27 @@ class ExtractorAgent:
             "ExtractorAgent: starting extraction (%d chars)", len(document_text)
         )
 
-        raw_output = self._chain.invoke({"document_text": document_text})
+        # Create prompt
+        prompt_val = _EXTRACTION_PROMPT.format_messages(document_text=document_text)
+
+        # Retry logic for 429 Resource Exhausted (Free Tier RPM Limits)
+        max_attempts = 3
+        for attempt in range(max_attempts):
+            try:
+                response = self._llm.invoke(prompt_val)
+                raw_output = response.content
+                if isinstance(raw_output, list):
+                    raw_output = " ".join([str(part.get("text", part)) if isinstance(part, dict) else str(part) for part in raw_output])
+                elif not isinstance(raw_output, str):
+                    raw_output = str(raw_output)
+                break
+            except Exception as e:
+                if "429" in str(e) and attempt < max_attempts - 1:
+                    logger.warning(f"API Rate Limit Hit (429) in Extractor. Sleeping 15s... (Attempt {attempt+1}/{max_attempts})")
+                    time.sleep(15)
+                else:
+                    raise e
+
         logger.debug("Raw LLM output:\n%s", raw_output)
 
         # Try to parse → validate → retry loop
@@ -276,8 +274,8 @@ class ExtractorAgent:
         return ExtractionResult(
             document_type=data.get("document_type", "unknown"),
             summary=data.get("summary", ""),
+            suggested_filename=data.get("suggested_filename", ""),
             entities=entities,
-            raw_thinking=data.get("thinking", ""),
         )
 
 
@@ -309,7 +307,6 @@ if __name__ == "__main__":
     print(f"\n{'=' * 60}")
     print(f"Document type : {result.document_type}")
     print(f"Summary       : {result.summary}")
-    print(f"Thinking      : {result.raw_thinking[:200]}…")
     print(f"{'=' * 60}")
     for ent in result.entities:
         print(f"  {ent.field_name:20s} = {ent.value:30s}  (conf: {ent.confidence:.1f})")

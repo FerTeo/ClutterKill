@@ -34,7 +34,7 @@ if platform.system() == "Windows":
                 break
 
 
-def extract_text_from_pdf(path: Union[str, Path], max_pages: int = 10) -> str:
+def extract_text_from_pdf(path: Union[str, Path], max_pages: int = 2) -> str:
     """
     Extrage textul dintr-un fișier PDF folosind PyMuPDF.
 
@@ -43,7 +43,7 @@ def extract_text_from_pdf(path: Union[str, Path], max_pages: int = 10) -> str:
 
     Args:
         path: Calea către fișierul PDF.
-        max_pages: Numărul maxim de pagini de citit (implicit: 10).
+        max_pages: Numărul maxim de pagini de citit (implicit: 2).
 
     Returns:
         Textul extras din PDF ca un singur string. Returnează un string gol în caz de eroare.

@@ -1,5 +1,6 @@
 """
 generate_mock_data.py — scripts/generate_mock_data.py
+# mypy: ignore-errors
 
 Generează 20 de fișiere neorganizate în test_data/source/:
   - 7 fișiere PDF (facturi / documente de curs) folosind fpdf

@@ -44,9 +44,9 @@ logger = logging.getLogger(__name__)
 # ─── Defaults (match docker-compose.yml & .env.example) ─────────────
 _DEFAULT_PROVIDER = "ollama"
 _DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
-_DEFAULT_REQUEST_TIMEOUT = 120.0  # seconds — OCR docs can be big
+_DEFAULT_REQUEST_TIMEOUT = 300.0  # seconds — CPU inference can take minutes
 
-_DEFAULT_GOOGLE_MODEL = "gemini-2.0-flash"
+_DEFAULT_GOOGLE_MODEL = "gemini-flash-lite-latest"
 
 # Model registry — one entry per Modelfile
 MODEL_CLASSIFIER = "ck-model"  # ai/Modelfile

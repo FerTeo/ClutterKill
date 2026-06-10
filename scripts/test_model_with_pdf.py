@@ -5,7 +5,7 @@ import os
 
 
 def test_model_with_pdf():
-    pdf_path = "Curs_MDS_Sem2.pdf"
+    pdf_path = "test_data/source/Curs_MDS_Sem2.pdf"
 
     # Verificăm dacă fișierul există
     if not os.path.exists(pdf_path):
