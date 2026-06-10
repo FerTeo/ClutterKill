@@ -1,9 +1,7 @@
 import sqlite3
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Any
 
-
-# Fișierul .db se creează în rădăcina proiectului (lângă main.py)
 DEFAULT_DB_PATH = Path(__file__).parent.parent / "quarantine.db"
 
 
@@ -89,7 +87,7 @@ class QuarantineDB:
                 (original_path, ai_proposed_name, ai_proposed_folder, reason),
             )
             conn.commit()
-            return cursor.lastrowid
+            return cursor.lastrowid or 0
         finally:
             conn.close()
 
@@ -140,7 +138,7 @@ class QuarantineDB:
         """
         # Construim dinamic query-ul doar cu câmpurile care se schimbă
         fields = []
-        values = []
+        values: list[Any] = []
 
         if ai_proposed_name is not None:
             fields.append("ai_proposed_name = ?")

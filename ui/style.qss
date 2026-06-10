@@ -1,0 +1,196 @@
+/* =========================================================
+   ClutterKill Dark Theme (Catppuccin Macchiato Inspired)
+   ========================================================= */
+
+/* --- Global Settings --- */
+QWidget {
+    background-color: #1e1e2e;
+    color: #cdd6f4;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 13px;
+}
+
+/* --- QMainWindow & Panels --- */
+QMainWindow {
+    background-color: #11111b;
+}
+
+/* --- QTabWidget --- */
+QTabWidget::pane {
+    border: 1px solid #313244;
+    background-color: #1e1e2e;
+    border-radius: 8px;
+}
+
+QTabBar::tab {
+    background-color: #181825;
+    color: #a6adc8;
+    padding: 10px 20px;
+    margin-right: 2px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border: 1px solid transparent;
+    border-bottom: none;
+}
+
+QTabBar::tab:selected {
+    background-color: #1e1e2e;
+    color: #89b4fa;
+    border: 1px solid #313244;
+    border-bottom: none;
+    font-weight: bold;
+}
+
+QTabBar::tab:hover:!selected {
+    background-color: #313244;
+    color: #cdd6f4;
+}
+
+/* --- QLineEdit & QTextEdit --- */
+QLineEdit, QTextEdit {
+    background-color: #181825;
+    border: 1px solid #313244;
+    border-radius: 6px;
+    padding: 8px;
+    color: #cdd6f4;
+    selection-background-color: #89b4fa;
+    selection-color: #11111b;
+}
+
+QLineEdit:focus, QTextEdit:focus {
+    border: 1px solid #89b4fa;
+}
+
+/* --- QComboBox --- */
+QComboBox {
+    background-color: #181825;
+    border: 1px solid #313244;
+    border-radius: 6px;
+    padding: 8px;
+    color: #cdd6f4;
+}
+
+QComboBox:focus {
+    border: 1px solid #89b4fa;
+}
+
+QComboBox::drop-down {
+    border: none;
+    width: 20px;
+}
+
+/* --- QPushButton (Default) --- */
+QPushButton {
+    background-color: #313244;
+    border: 1px solid #45475a;
+    border-radius: 6px;
+    padding: 8px 16px;
+    color: #cdd6f4;
+    font-weight: bold;
+}
+
+QPushButton:hover {
+    background-color: #45475a;
+    border-color: #585b70;
+}
+
+QPushButton:pressed {
+    background-color: #585b70;
+}
+
+QPushButton:disabled {
+    background-color: #181825;
+    color: #585b70;
+    border: 1px solid #313244;
+}
+
+/* --- QPushButton (Primary / Accent) --- */
+QPushButton#primaryButton {
+    background-color: #89b4fa;
+    color: #11111b;
+    border: none;
+}
+
+QPushButton#primaryButton:hover {
+    background-color: #74c7ec;
+}
+
+QPushButton#primaryButton:pressed {
+    background-color: #89dceb;
+}
+
+/* --- Visual Builder Palette Buttons --- */
+QPushButton[variableButton="true"] {
+    background-color: #cba6f7;
+    color: #11111b;
+    border: none;
+    border-radius: 12px; /* Pill shape */
+    padding: 6px 12px;
+}
+QPushButton[variableButton="true"]:hover {
+    background-color: #f5c2e7;
+}
+
+QPushButton[separatorButton="true"] {
+    background-color: #45475a;
+    color: #cdd6f4;
+    border: none;
+    border-radius: 12px;
+}
+QPushButton[separatorButton="true"]:hover {
+    background-color: #585b70;
+}
+
+/* --- QListWidget --- */
+QListWidget {
+    background-color: #181825;
+    border: 1px solid #313244;
+    border-radius: 6px;
+    outline: none;
+}
+
+QListWidget::item {
+    padding: 10px;
+    border-bottom: 1px solid #1e1e2e;
+}
+
+QListWidget::item:selected {
+    background-color: #313244;
+    color: #89b4fa;
+    border-left: 3px solid #89b4fa;
+}
+
+QListWidget::item:hover:!selected {
+    background-color: #1e1e2e;
+}
+
+/* --- QProgressBar --- */
+QProgressBar {
+    background-color: #181825;
+    border: 1px solid #313244;
+    border-radius: 6px;
+    text-align: center;
+    color: #cdd6f4;
+}
+
+QProgressBar::chunk {
+    background-color: #a6e3a1;
+    border-radius: 5px;
+}
+
+/* --- Scrollbars --- */
+QScrollBar:vertical {
+    border: none;
+    background: #1e1e2e;
+    width: 10px;
+    border-radius: 5px;
+}
+
+QScrollBar::handle:vertical {
+    background: #45475a;
+    border-radius: 5px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #585b70;
+}

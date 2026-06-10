@@ -25,7 +25,6 @@ class AppWindow(QMainWindow):
         self.scan_tab = ScanTab()
         self.tabs.addTab(self.scan_tab, "Scan")
 
-        # Add the RulesTab
         self.rules_tab = RulesTab()
         self.tabs.addTab(self.rules_tab, "Rules")
 

@@ -1,0 +1,5 @@
+FROM llava:7b
+PARAMETER temperature 0.1
+SYSTEM """
+You identify images. Reply with ONE word only: the main subject. Examples: dog, cat, sign, car, mountain, person, food, building.
+"""

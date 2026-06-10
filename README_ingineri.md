@@ -36,43 +36,85 @@ docker-compose down -v
 docker-compose up -d
 ```
 
-## 2. Configurarea Modelului Local (Gemma 2:2b)
+## 2. Configurarea Modelelor Locale
 
-Am creat fișierul `ai/Modelfile` bazat pe modelul `gemma2:2b`.
-Acest fișier setează:
-- **`temperature 0.1`**: Garantează răspunsuri precise, deterministe și lipsite de halucinații, ideale pentru clasificarea exactă a fișierelor.
-- **`SYSTEM prompt`**: Forțează AI-ul să dea doar rezultate scurte și la obiect, fără conversații introductive inutile.
+ClutterKill folosește **3 modele AI personalizate** + 2 modele de bază:
 
-### Crearea și încărcarea modelului personalizat:
-Odată ce containerul de Ollama rulează (pasul 1), executați următoarea comandă pentru a crea modelul `ck-model`:
+### 2.1 Modelul de Clasificare — `ck-model` (Agent 0 & 2)
+
+Bazat pe `gemma2:2b`. Fișierul `ai/Modelfile` setează:
+- **`temperature 0.1`**: Răspunsuri precise, deterministe.
+- **`SYSTEM prompt`**: Forțează AI-ul să returneze doar JSON structurat.
 
 ```bash
 docker exec -it clutterkill_ollama ollama create ck-model -f /app/ai/Modelfile
 ```
 
-## 3. Verificarea Modelului
+### 2.2 Modelul de Extragere — `ck-extractor` (Agent 1)
 
-Pentru a verifica dacă modelul a fost compilat cu succes și este recunoscut de API-ul Ollama, executați:
+Bazat pe `gemma2:2b`. Fișierul `ai/Modelfile.extractor` setează un prompt specializat pentru extragerea de entități din documente (Emitent, Dată, Sumă, Tip).
+
+```bash
+docker exec -it clutterkill_ollama ollama create ck-extractor -f /app/ai/Modelfile.extractor
+```
+
+### 2.3 Modelul Vision — `ck-vision` (Identificare Imagini)
+
+Bazat pe **`llava:7b`** (~4.5GB). Acesta este un model **multimodal** capabil să "vadă" imagini și să identifice subiectul principal.
+
+**Ce face:**
+- Primește o imagine (JPEG/PNG/BMP) codificată în base64
+- Returnează **un singur cuvânt** care descrie subiectul principal (ex: `dog`, `cat`, `sign`, `car`)
+- Folosit doar pentru fișiere imagine, nu pentru PDF/DOCX
+
+**Fișier configurare:** `ai/Modelfile.vision`
+```
+FROM llava:7b
+PARAMETER temperature 0.1
+SYSTEM "You identify images. Reply with ONE word only..."
+```
+
+**Setup:**
+```bash
+# 1. Pull modelul de bază llava:7b (~4.5GB, durează câteva minute)
+docker exec -it clutterkill_ollama ollama pull llava:7b
+
+# 2. Creează modelul personalizat ck-vision
+docker exec -it clutterkill_ollama ollama create ck-vision -f /app/ai/Modelfile.vision
+```
+
+**Modul Python:** `ai/vision_tools.py` — funcția `describe_image(path)` gestionează:
+- Codificarea imaginii în base64
+- Detectarea MIME type (jpeg, png, bmp)
+- Trimiterea către Ollama (local) sau Google Gemini (cloud) în funcție de `AI_PROVIDER`
+- Returnarea descrierii ca string
+
+**Note de performanță:**
+- Prima inferență durează ~30-60s (încărcare model în RAM)
+- Inferențele următoare: ~5-15s per imagine
+- Necesită minim 8GB RAM disponibil
+
+## 3. Verificarea Modelelor
+
+Pentru a verifica dacă toate modelele au fost create cu succes:
 ```bash
 curl http://localhost:11434/api/tags
 ```
-Rezultatul (în format JSON) trebuie să includă modelul `ck-model` și modelul de bază `gemma2:2b`.
+Rezultatul (JSON) trebuie să includă: `ck-model`, `ck-extractor`, `ck-vision`, `gemma2:2b`, `llava:7b`.
 
-## 4. Testarea/Apelarea Modelului
+## 4. Testarea/Apelarea Modelelor
 
-Pentru a testa capacitățile modelului direct din terminal, fără a rula interfața grafică a aplicației, aveți două variante:
+Pentru a testa capacitățile modelelor direct din terminal:
 
-### Varianta A: Apel prin REST API
-```bash
-curl -X POST http://localhost:11434/api/generate -d '{
-  "model": "ck-model",
-  "prompt": "Clasifică documentul: Curs_MDS_Sem2.pdf"
-}'
-```
-
-### Varianta B: Apel direct prin CLI (Ollama Run)
+### Varianta A: Test clasificare (ck-model)
 ```bash
 docker exec -it clutterkill_ollama ollama run ck-model "Clasifică documentul: Curs_MDS_Sem2.pdf"
+```
+
+### Varianta B: Test Vision (ck-vision) - direct din CLI
+```bash
+# ck-vision nu poate fi testat direct din CLI fără imagine.
+# Folosiți scriptul Python pentru test complet (Varianta C).
 ```
 
 ### Varianta C: Apel prin Python (citind PDF-ul fals generat)

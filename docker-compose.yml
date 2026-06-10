@@ -32,8 +32,10 @@ services:
       sh -c "
         echo '=== ClutterKill: Initializing AI models ===' &&
         ollama pull gemma2:2b &&
+        ollama pull llava:7b &&
         ollama create ck-model -f /app/ai/Modelfile &&
         ollama create ck-extractor -f /app/ai/Modelfile.extractor &&
+        ollama create ck-vision -f /app/ai/Modelfile.vision &&
         echo '=== All models ready ==='
       "
     restart: "no"

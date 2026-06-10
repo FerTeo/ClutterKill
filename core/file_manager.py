@@ -32,6 +32,15 @@ def move_and_rename_file(
     # The final target path
     target_path = dest_path / new_name
 
+    # Prevent overwriting existing files with the same name (e.g. Dog.jpeg, Dog_1.jpeg)
+    if target_path.exists():
+        base_name = target_path.stem
+        ext = target_path.suffix
+        counter = 1
+        while target_path.exists():
+            target_path = dest_path / f"{base_name}_{counter}{ext}"
+            counter += 1
+
     # Move the file physically
     shutil.move(str(src_path), str(target_path))
 

@@ -2,6 +2,8 @@
 
 ClutterKill is a multi-agent desktop application for automated file organization using local AI. 
 
+> **Cross-Platform:** Această aplicație este construită în Python și PyQt6, ceea ce o face 100% **Cross-Platform**. Funcționează perfect pe macOS, Windows și Linux, atâta timp cât ai Python instalat. Mici diferențe pot apărea la instalarea dependențelor de sistem (ex. Tesseract OCR).
+
 # User Stories
 
 ## US 1 (Selecție foldere): 
@@ -62,18 +64,22 @@ ClutterKill/
 │
 ├── 📂 ai/                      # MODULUL AI (Inteligența Aplicației)
 │   ├── 📄 __init__.py
-│   ├── 📄 Modelfile            # Definiția modelului Gemma 2:2b (temperature 0.1)
-│   ├── 📄 llm_config.py        # Conexiunea LangChain cu localhost:11434
-│   ├── 📄 tools.py             # Funcții: extract_text_from_pdf, extract_text_from_image
+│   ├── 📄 Modelfile            # Definiția modelului Gemma 2:2b (Agent 0 & 2 - Clasificare)
+│   ├── 📄 Modelfile.extractor  # Definiția modelului Gemma 2:2b (Agent 1 - Extragere)
+│   ├── 📄 Modelfile.vision     # Definiția modelului LLaVA 7B (Vision - Analiză vizuală imagini)
+│   ├── 📄 llm_config.py        # Factory + configurare LLM (Ollama / Google)
+│   ├── 📄 tools.py             # Funcții: extract_text_from_pdf, extract_text_from_image, extract_text_from_docx
+│   ├── 📄 vision_tools.py      # Modul Vision AI: describe_image() — trimite poze la LLaVA pentru identificare
 │   ├── 📄 agent_compiler.py    # AGENT 0: Traduce promptul natural în JSON (Reguli)
-│   ├── 📄 agent_extractor.py   # AGENT 1: Rezumă fișierul fizic
+│   ├── 📄 agent_extractor.py   # AGENT 1: Rezumă fișierul fizic (chain-of-thought extraction)
 │   └── 📄 agent_decider.py     # AGENT 2: Combină Agent 0 cu Agent 1 și ia decizia finală
 │
 ├── 📂 core/                    # LOGICA BACKEND (Sistemul de operare)
 │   ├── 📄 __init__.py
 │   ├── 📄 file_manager.py      # Mutare, redenumire (cross-platform cu pathlib)
 │   ├── 📄 undo_manager.py      # Logica pentru stiva de Undo (ultimele 50 acțiuni)
-│   └── 📄 quarantine_db.py     # Baza de date SQLite pentru fișierele nesigure
+│   ├── 📄 quarantine_db.py     # Baza de date SQLite pentru fișierele nesigure
+│   └── 📄 scan_worker.py       # QThread: pipeline-ul complet de scanare (Vision + Extragere + Decizie)
 │
 ├── 📂 ui/                      # INTERFAȚA GRAFICĂ (PyQt6)
 │   ├── 📄 __init__.py
@@ -91,6 +97,28 @@ ClutterKill/
     └── 📂 evals/               
         └── test_agents.py      # Verifică dacă Agenții 0 și 2 scot JSON valid
 ```
+
+## 🧠 AI Model Registry
+
+ClutterKill folosește **4 modele AI locale** rulând prin Ollama în Docker:
+
+| Model | Bază | Scop | Fișier Config | Mărime |
+|-------|------|------|---------------|--------|
+| `ck-model` | `gemma2:2b` | Agent 0 (Compiler) + Agent 2 (Decider) — clasificare și decizie | `ai/Modelfile` | ~1.6GB |
+| `ck-extractor` | `gemma2:2b` | Agent 1 (Extractor) — rezumat tehnic documente | `ai/Modelfile.extractor` | ~1.6GB |
+| `ck-vision` | `llava:7b` | Vision AI — identificare vizuală imagini (dog, cat, sign...) | `ai/Modelfile.vision` | ~4.5GB |
+| `gemma2:2b` | - | Model de bază (descărcat automat) | - | ~1.6GB |
+| `llava:7b` | - | Model de bază multimodal (descărcat automat) | - | ~4.5GB |
+
+### Pipeline de procesare imagini
+
+```text
+📷 Imagine (.jpg/.png)  →  Vision AI (ck-vision / llava:7b)  →  "dog"
+                        →  OCR (Tesseract)                   →  text extras
+                        →  Combinate în rezumat               →  Decizie: Dog.jpeg
+```
+
+Pentru **documente** (PDF, DOCX, TXT) se folosește doar pipeline-ul text clasic (fără Vision AI).
 
 ## 📁 Directory Architecture
 
@@ -116,6 +144,14 @@ The project's Python dependencies are listed in `requirements.txt`, which includ
 - **Ruff**: For extremely fast Python linting and code formatting.
 
 ### How to Install:
+
+**1. System Dependencies (OCR)**
+To process images (PNG, JPG), you must install Tesseract OCR on your host machine:
+- **macOS**: `brew install tesseract tesseract-lang`
+- **Windows**: Download the installer from [UB-Mannheim](https://github.com/UB-Mannheim/tesseract/wiki)
+- **Linux (Ubuntu/Debian)**: `sudo apt-get install tesseract-ocr tesseract-ocr-ron`
+
+**2. Python Dependencies**
 To set up your environment, install the dependencies using `pip`:
 ```bash
 pip install -r requirements.txt
@@ -155,19 +191,23 @@ The application leverages Docker to seamlessly run local AI models without compl
    docker-compose up -d ollama
    ```
 
-3. **Pull base model and Create Custom AI Models**:
-   ClutterKill uses two distinct models for processing (Classifier and Extractor):
+3. **Pull base models and Create Custom AI Models**:
+   ClutterKill uses three distinct custom models:
    ```bash
-   # Pull the base model (Wait for the download to finish)
+   # Pull the base models (Wait for each download to finish)
    docker exec -it clutterkill_ollama ollama pull gemma2:2b
-   # Note: If you get a 'manifest does not exist' error on older machines, use 'gemma:2b' instead and update the Modelfiles.
+   docker exec -it clutterkill_ollama ollama pull llava:7b
 
-   # Create Agent 0 & 2 (Classifier)
+   # Create Agent 0 & 2 (Classifier / Decider)
    docker exec -it clutterkill_ollama ollama create ck-model -f /app/ai/Modelfile
    
    # Create Agent 1 (Extractor)
    docker exec -it clutterkill_ollama ollama create ck-extractor -f /app/ai/Modelfile.extractor
+
+   # Create Vision AI (Image identification)
+   docker exec -it clutterkill_ollama ollama create ck-vision -f /app/ai/Modelfile.vision
    ```
+   > **Note**: If you get a 'manifest does not exist' error on older machines for gemma2:2b, use 'gemma:2b' instead and update the Modelfiles.
 
 4. **Verify the models are running**:
    ```bash
@@ -175,11 +215,22 @@ The application leverages Docker to seamlessly run local AI models without compl
    ```
 
 5. **Run the Application**:
-   Activate your virtual environment and run the graphical interface:
+   Cea mai simplă metodă de a rula aplicația este folosind scriptul automat `start.sh`. Acesta va crea mediul virtual, va instala toate dependențele lipsă și va porni aplicația cu o singură comandă:
+   ```bash
+   ./start.sh
+   ```
+   *Alternativ (manual):*
    ```bash
    source .venv/bin/activate
    python main.py
    ```
+
+## 🌟 Changelog / Update-uri Recente
+- **UI Revamp (Dark Theme Premium):** Interfața a primit un redesign complet bazat pe paleta Catppuccin Macchiato. Colțuri rotunjite, butoane colorate vibrant și efecte subtile.
+- **Visual Builder Funcțional:** Tab-ul "Rules" suportă acum șabloane stricte (Templates). A fost adăugată o paletă de butoane "Click-to-Insert" pentru a introduce automat variabile matematice (ex: `[An]`, `[Luna]`) fără a le tasta manual.
+- **Simplificare Arhitectură Directoare (Flattened Output):** La cererea utilizatorilor, fișierele redenumite de AI nu mai sunt forțate în sub-foldere. Ele sunt exportate direct în root-ul folderului destinație ales de tine.
+- **Reparare ExtractorAgent (Bug-ul "Strip"):** Rezolvată o problemă critică cauzată de noul SDK Google V2 care bloca parsarea imaginilor aruncând toate rezultatele direct în carantină.
+- **Rate-Limiting Gemini V2:** Adăugat mecanism automat de sleep (15 secunde) atunci când API-ul gratuit Google atinge limitele HTTP 429.
 
 *Note: The project configuration also provides environment variables (`AI_PROVIDER`, `GOOGLE_API_KEY`) to easily switch between local `ollama` processing and cloud-based alternatives like `google`.*
 

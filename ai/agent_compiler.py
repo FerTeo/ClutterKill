@@ -53,7 +53,9 @@ Your job is to translate a user's natural language instruction about where and h
 User instruction: "{user_prompt}"
 
 Extract the category, folder structure, and naming convention.
-If the naming convention is not explicitly stated, use a default placeholder like "{{original_filename}}" or infer a sensible one if the context implies it.
+CRITICAL RULES FOR EXTRACTION:
+1. CATEGORY: If the user instruction applies to ALL files without filtering (e.g. "organize them", "rename them", "toate", "toate pozele", "orice"), set category to "any". Otherwise, extract the specific category (e.g. "factura").
+2. NAMING CONVENTION: If the user explicitly asks to give files suggestive names, new names, or rename them (e.g. "da le nume sugestive", "redenumeste-le", "nume dupa continut", "nume sugestiv"), you MUST set naming_convention to "descriptive_name_based_on_content". If they do not ask for renames, set it to "{{original_filename}}".
 
 CRITICAL: You must return ONLY the raw JSON object containing the ACTUAL values based on the user instruction. Do NOT return a JSON schema. Do NOT return properties definitions. DO NOT echo back the format instructions.
 
@@ -112,9 +114,21 @@ class CompilerAgent:
         """
         logger.info("CompilerAgent: compiling prompt: '%s'", user_prompt)
         try:
-            # invoke the chain which formats the prompt, calls LLM, and parses output
-            result = self._chain.invoke({"user_prompt": user_prompt})
-            return result
+            import time
+
+            max_attempts = 3
+            for attempt in range(max_attempts):
+                try:
+                    result = self._chain.invoke({"user_prompt": user_prompt})
+                    return result
+                except Exception as loop_e:
+                    if "429" in str(loop_e) and attempt < max_attempts - 1:
+                        logger.warning(
+                            f"API Rate Limit Hit (429) in Compiler. Sleeping 15s... (Attempt {attempt + 1}/{max_attempts})"
+                        )
+                        time.sleep(15)
+                    else:
+                        raise loop_e
         except Exception as e:
             logger.error("Failed to compile rule: %s", e)
             raise
