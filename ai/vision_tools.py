@@ -42,7 +42,6 @@ from typing import Union
 
 from langchain_core.messages import HumanMessage
 from langchain_ollama import ChatOllama
-from langchain_google_genai import ChatGoogleGenerativeAI
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +92,6 @@ def describe_image(path: Union[str, Path]) -> str:
 
         if provider == "google":
             from google import genai
-            from google.genai.errors import ClientError
             import time
             
             api_key = os.getenv("GOOGLE_API_KEY")

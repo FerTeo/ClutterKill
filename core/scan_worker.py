@@ -4,7 +4,6 @@ from pathlib import Path
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
-from ai.agent_compiler import CompilerAgent
 from ai.agent_extractor import ExtractorAgent
 from ai.agent_decider import DeciderAgent, ActionDecision
 from ai.tools import (
