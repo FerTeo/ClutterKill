@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 
 from langchain_core.output_parsers import PydanticOutputParser, StrOutputParser
 from langchain_core.prompts import PromptTemplate, ChatPromptTemplate

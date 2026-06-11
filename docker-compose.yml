@@ -1,11 +1,8 @@
-version: '3.8'
-
 services:
+  # ── Ollama Server ────────────────────────────────────────────────
+  # Rulează serverul Ollama. Modelele sunt stocate persistent în volum.
   ollama:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: ollama-service
+    image: ollama/ollama
     container_name: clutterkill_ollama
     ports:
       - "11434:11434"
@@ -20,11 +17,36 @@ services:
       retries: 10
       start_period: 30s
 
+  # ── Ollama Init (one-shot) ───────────────────────────────────────
+  # Descarcă modelele de bază și creează modelele custom la PRIMA rulare.
+  # Rulează O SINGURĂ DATĂ, apoi se oprește. La următoarele docker-compose up,
+  # modelele există deja în volum și comanda termină instant.
+  ollama-setup:
+    image: ollama/ollama
+    container_name: clutterkill_ollama_setup
+    depends_on:
+      ollama:
+        condition: service_healthy
+    volumes:
+      - ollama_data:/root/.ollama
+      - ./ai:/app/ai
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    entrypoint: >
+      sh -c "
+        echo '=== ClutterKill: Verificare și descărcare modele AI ===' &&
+        ollama pull gemma2:2b &&
+        ollama pull llava:7b &&
+        ollama create ck-model -f /app/ai/Modelfile &&
+        ollama create ck-extractor -f /app/ai/Modelfile.extractor &&
+        ollama create ck-vision -f /app/ai/Modelfile.vision &&
+        echo '=== Toate modelele sunt gata! ==='
+      "
+    restart: "no"
+
+  # ── App Container (opțional, pentru teste) ───────────────────────
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: app-service
+    build: .
     container_name: clutterkill_app
     depends_on:
       ollama:
@@ -35,7 +57,6 @@ services:
     env_file:
       - .env
     environment:
-      # Suprascrie URL-ul din .env cu hostname-ul intern Docker
       - OLLAMA_BASE_URL=http://ollama:11434
     command: tail -f /dev/null
 

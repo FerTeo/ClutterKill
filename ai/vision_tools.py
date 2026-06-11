@@ -75,7 +75,10 @@ def describe_image(path: Union[str, Path]) -> str:
         elif ext == ".bmp":
             mime_type = "image/bmp"
 
-        provider = os.getenv("AI_PROVIDER", _DEFAULT_PROVIDER).lower()
+        # Auto-detect: dacă există Google API key valid → Google, altfel → Ollama
+        api_key = os.getenv("GOOGLE_API_KEY", "").strip()
+        is_placeholder = api_key == "your_google_api_key_here" or not api_key
+        provider = "google" if not is_placeholder else "ollama"
 
         message = HumanMessage(
             content=[

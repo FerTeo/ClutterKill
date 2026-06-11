@@ -177,61 +177,66 @@ Once installed, `ruff` will automatically format your code on `git commit`. If c
 
 ## 🐳 Environment & Local AI Setup
 
-The application leverages Docker to seamlessly run local AI models without complicating the host system.
+Aplicația funcționează în **două moduri**, alese automat:
 
-### Step-by-Step Setup Instructions:
+| Mod | Când se activează | Ce folosește | Docker necesar? |
+|-----|-------------------|--------------|-----------------|
+| ☁️ **Google Gemini** | Dacă `GOOGLE_API_KEY` este setat valid în `.env` | API-ul Google Gemini (cloud) | ❌ Nu |
+| 🐳 **Ollama Local** | Dacă NU există `GOOGLE_API_KEY` (sau e placeholder) | Modele locale prin Docker | ✅ Da |
 
-1. **Configure Environment Variables**:
-   ```bash
-   cp .env.example .env
-   ```
+**Aplicația detectează automat** care mod să folosească. Dacă ai un API key Google setat, nu se mai atinge de Docker deloc.
 
-2. **Start the Docker container** (for Ollama):
-   ```bash
-   docker-compose up -d ollama
-   ```
+### Instalare (o singură comandă):
 
-3. **Pull base models and Create Custom AI Models**:
-   ClutterKill uses three distinct custom models:
-   ```bash
-   # Pull the base models (Wait for each download to finish)
-   docker exec -it clutterkill_ollama ollama pull gemma2:2b
-   docker exec -it clutterkill_ollama ollama pull llava:7b
+```bash
+bash setup.sh
+```
 
-   # Create Agent 0 & 2 (Classifier / Decider)
-   docker exec -it clutterkill_ollama ollama create ck-model -f /app/ai/Modelfile
-   
-   # Create Agent 1 (Extractor)
-   docker exec -it clutterkill_ollama ollama create ck-extractor -f /app/ai/Modelfile.extractor
+Scriptul `setup.sh` face totul automat:
+1. Creează mediul virtual Python și instalează dependențele
+2. Generează fișierul `.env` din template (dacă nu există)
+3. **Verifică** dacă ai `GOOGLE_API_KEY` setat:
+   - ✅ Dacă **DA** → gata, nu mai face nimic cu Docker
+   - ❌ Dacă **NU** → pornește `docker compose up -d` care:
+     - Pornește containerul Ollama (serverul AI local)
+     - Descarcă automat modelele (`gemma2:2b` ≈ 1.6GB + `llava:7b` ≈ 4.5GB)
+     - Creează modelele custom (`ck-model`, `ck-extractor`, `ck-vision`)
 
-   # Create Vision AI (Image identification)
-   docker exec -it clutterkill_ollama ollama create ck-vision -f /app/ai/Modelfile.vision
-   ```
-   > **Note**: If you get a 'manifest does not exist' error on older machines for gemma2:2b, use 'gemma:2b' instead and update the Modelfiles.
+> [!TIP]
+> **Recomandat:** Dacă ai un API key Google Gemini, setează-l în `.env` înainte de `setup.sh`:
+> ```bash
+> cp .env.example .env
+> # editează .env și pune GOOGLE_API_KEY=cheia_ta_reala
+> bash setup.sh
+> ```
+> Astfel nu vei avea nevoie de Docker deloc și aplicația va rula instant.
 
-4. **Verify the models are running**:
-   ```bash
-   curl http://localhost:11434/api/tags
-   ```
+> [!WARNING]
+> **Probleme cu Docker pe Mac (Out of Space):**
+> Modelele AI locale au ~6GB. Dacă ai puțin spațiu pe disk, Docker poate crăpa cu erori de `input/output error`. Fix:
+> ```bash
+> docker builder prune -a -f
+> docker system prune -f
+> ```
+> Apoi rulează din nou `bash setup.sh`.
 
-5. **Run the Application**:
-   Cea mai simplă metodă de a rula aplicația este folosind scriptul automat `start.sh`. Acesta va crea mediul virtual, va instala toate dependențele lipsă și va porni aplicația cu o singură comandă:
-   ```bash
-   ./start.sh
-   ```
-   *Alternativ (manual):*
-   ```bash
-   source .venv/bin/activate
-   python main.py
-   ```
+### Lansare aplicație:
+
+```bash
+bash start.sh
+```
+
+Scriptul `start.sh` pornește automat containerul Ollama (dacă e cazul) și lansează interfața grafică.
 
 ## 🌟 Changelog / Update-uri Recente
+- **Auto-detect AI Provider:** Aplicația detectează automat dacă ai Google API key și îl folosește pe Gemini. Fără key → fallback la Ollama local prin Docker. Nu mai trebuie setat manual `AI_PROVIDER`.
+- **Setup simplificat:** Un singur `bash setup.sh` face totul. Docker-ul descarcă modelele automat prin `docker-compose.yml` (serviciul `ollama-setup`).
 - **UI Revamp (Dark Theme Premium):** Interfața a primit un redesign complet bazat pe paleta Catppuccin Macchiato. Colțuri rotunjite, butoane colorate vibrant și efecte subtile.
 - **Visual Builder Funcțional:** Tab-ul "Rules" suportă acum șabloane stricte (Templates). A fost adăugată o paletă de butoane "Click-to-Insert" pentru a introduce automat variabile matematice (ex: `[An]`, `[Luna]`) fără a le tasta manual.
 - **Simplificare Arhitectură Directoare (Flattened Output):** La cererea utilizatorilor, fișierele redenumite de AI nu mai sunt forțate în sub-foldere. Ele sunt exportate direct în root-ul folderului destinație ales de tine.
 - **Reparare ExtractorAgent (Bug-ul "Strip"):** Rezolvată o problemă critică cauzată de noul SDK Google V2 care bloca parsarea imaginilor aruncând toate rezultatele direct în carantină.
 - **Rate-Limiting Gemini V2:** Adăugat mecanism automat de sleep (15 secunde) atunci când API-ul gratuit Google atinge limitele HTTP 429.
 
-*Note: The project configuration also provides environment variables (`AI_PROVIDER`, `GOOGLE_API_KEY`) to easily switch between local `ollama` processing and cloud-based alternatives like `google`.*
+*Note: Aplicația detectează automat provider-ul AI pe baza variabilei `GOOGLE_API_KEY` din `.env`. Dacă cheia există și e validă → Google Gemini. Dacă nu → Ollama local prin Docker.*
 
 For more detailed DevOps and QA instructions, please refer to [README_ingineri.md](README_ingineri.md).
