@@ -1,242 +1,424 @@
-# ClutterKill
+# 🗂️ ClutterKill
 
-ClutterKill is a multi-agent desktop application for automated file organization using local AI. 
+**ClutterKill** este o aplicație desktop multi-agent pentru **organizarea automată a fișierelor** folosind inteligență artificială. Arunci un folder plin de haos (PDF-uri, poze, documente Word), definești o regulă, apeși un buton și AI-ul le sortează, redenumește și mută automat.
 
-> **Cross-Platform:** Această aplicație este construită în Python și PyQt6, ceea ce o face 100% **Cross-Platform**. Funcționează perfect pe macOS, Windows și Linux, atâta timp cât ai Python instalat. Mici diferențe pot apărea la instalarea dependențelor de sistem (ex. Tesseract OCR).
+> **Cross-Platform:** Aplicația este construită în **Python** și **PyQt6** — funcționează pe **macOS**, **Windows** și **Linux**.
 
-# User Stories
+---
 
-## US 1 (Selecție foldere): 
-Ca utilizator, vreau să pot selecta printr-un buton de „Browse” un folder sursă și un folder destinație, astfel încât aplicația să știe de unde preia haosul și unde livrează documentele organizate.
+## 📑 Cuprins
 
+- [Cum funcționează](#-cum-funcționează)
+- [Cerințe de sistem](#-cerințe-de-sistem)
+- [Instalare rapidă](#-instalare-rapidă)
+  - [macOS / Linux](#macos--linux)
+  - [Windows](#windows)
+- [Configurare AI Provider](#-configurare-ai-provider)
+  - [Opțiunea 1: Google Gemini (recomandat)](#opțiunea-1-google-gemini-recomandat--rapid-fără-docker)
+  - [Opțiunea 2: Ollama Local (Docker)](#opțiunea-2-ollama-local-docker--gratuit-offline)
+- [Lansare aplicație](#-lansare-aplicație)
+- [User Stories](#-user-stories)
+- [Arhitectură proiect](#-arhitectură-proiect)
+- [AI Model Registry](#-ai-model-registry)
+- [Pipeline de procesare](#-pipeline-de-procesare)
+- [Dependențe Python](#-dependențe-python)
+- [Code Formatting & Pre-Commit](#-code-formatting--pre-commit-hooks)
+- [Troubleshooting](#-troubleshooting)
+- [Changelog](#-changelog)
 
-## US 2 (Reguli Standard - Drag & Drop): 
-Ca utilizator începător, vreau să folosesc un panou de tip „Drag and Drop” pentru a trage blocuri logice (ex: [An], [Emitent]) și a forma șabloane vizuale de redenumire, astfel încât să nu scriu cod sau expresii regulate.
+---
 
-## US 3 (Salvare Șabloane): 
-Ca utilizator, vreau să pot salva aceste șabloane sub un nume personalizat (ex: „Regulă Facturi”), astfel încât să le pot refolosi rapid la următoarele scanări.
-
-## US 4 (Optimizare PDF-uri): 
-Ca utilizator, vreau să pot seta o limită de citire pentru documentele PDF foarte mari (ex: doar primele 10 pagini), astfel încât să optimizez timpul de procesare și memoria consumată de AI.
-
-## US 5 (Monitorizare Progres):
- Ca utilizator, vreau să pot apăsa butonul „Start Kill” și să văd imediat o bară de progres animată, astfel încât să știu în timp real cât mai durează procesarea folderului.
-
-## US 6 (Transparență AI): 
-Ca utilizator, vreau ca interfața să afișeze un log vizual (un terminal integrat) cu deciziile luate în timp real (ex: „📄 doc_1.pdf → 🧠 Factură eMAG → ✅ Mutat”), astfel încât să înțeleg cum gândește AI-ul.
-
-## US 7 (Zona de Carantină): 
-Ca utilizator, vreau să accesez un tab numit „Quarantine Zone” cu fișierele pe care AI-ul nu a fost 100% sigur cum să le clasifice, astfel încât deciziile ambigue să nu fie luate fără mine.
-
-## US 8 (Decizie Rapidă - Split Screen):
-Ca utilizator, vreau ca la click pe un fișier din Carantină ecranul să se împartă în două: în stânga previzualizarea documentului, în dreapta propunerea AI, pentru a lua o decizie vizuală rapidă.
-
-## US 9 (Corectare Manuală): 
-Ca utilizator, vreau să pot edita manual, într-un câmp text, numele propus de AI în Carantină și să apăs „Approve”, pentru a corecta erorile înainte de mutarea definitivă.
-
-## US 10 (Safety Net - Undo):
- Ca utilizator, vreau să am un tab „Activity History” cu ultimele 50 de fișiere mutate și un buton „Undo” pe fiecare rând, astfel încât să readuc instantaneu un fișier la locația și numele original dacă m-am răzgândit.
-
-## US 11 (Reguli Avansate AI - NOU): 
-Ca utilizator avansat, vreau să pot scrie o regulă complexă sub formă de text natural (ex: "Dacă e document de la facultate, pune-l în Semestru/Materie/Curs"), astfel încât AI-ul (Agentul 0) să deducă automat ierarhiile complexe de foldere fără ca eu să folosesc blocurile de Drag & Drop.
-
-# Project Structure
+## 🧠 Cum funcționează
 
 ```text
-ClutterKill/
-├── 📄 main.py                  # Punctul de intrare: lansează interfața grafică PyQt6
-├── 📄 requirements.txt         # Dependințele: PyQt6, langchain, pydantic, pymupdf, pytest etc.
-├── 📄 docker-compose.yml       # Setup-ul pentru containerul Ollama local
-├── 📄 .gitignore               # Fișiere de ignorat (venv, test_data/, __pycache__)
-├── 📄 .pre-commit-config.yaml  # Configurarea hook-urilor pre-commit (Ruff etc.)
-├── 📄 README.md                # Documentația principală a proiectului
-│
-├── 📂 docs/                    # DOCUMENTAȚIE (Pentru evaluarea MDS)
-│   ├── 📄 RAPORT_AI.md         # Raportul utilizării LLM-urilor în dezvoltare
-│   └── 🖼️ arhitectura.md       # Diagramele UML și de flux (Mermaid)
-│
-├── 📂 scripts/                 # UTILITARE PENTRU DEZVOLTATORI
-│   └── 📄 generate_mock_data.py # Generează haosul de test (PDF-uri, Word, imagini OCR)
-│
-├── 📂 test_data/               # FOLDER DE TESTARE (Generat automat, ignorat de Git)
-│   ├── 📂 source/              # Folderul sursă cu fișiere dezorganizate
-│   └── 📂 destination/         # Folderul destinație unde AI-ul le va muta
-│
-├── 📂 ai/                      # MODULUL AI (Inteligența Aplicației)
-│   ├── 📄 __init__.py
-│   ├── 📄 Modelfile            # Definiția modelului Gemma 2:2b (Agent 0 & 2 - Clasificare)
-│   ├── 📄 Modelfile.extractor  # Definiția modelului Gemma 2:2b (Agent 1 - Extragere)
-│   ├── 📄 Modelfile.vision     # Definiția modelului LLaVA 7B (Vision - Analiză vizuală imagini)
-│   ├── 📄 llm_config.py        # Factory + configurare LLM (Ollama / Google)
-│   ├── 📄 tools.py             # Funcții: extract_text_from_pdf, extract_text_from_image, extract_text_from_docx
-│   ├── 📄 vision_tools.py      # Modul Vision AI: describe_image() — trimite poze la LLaVA pentru identificare
-│   ├── 📄 agent_compiler.py    # AGENT 0: Traduce promptul natural în JSON (Reguli)
-│   ├── 📄 agent_extractor.py   # AGENT 1: Rezumă fișierul fizic (chain-of-thought extraction)
-│   └── 📄 agent_decider.py     # AGENT 2: Combină Agent 0 cu Agent 1 și ia decizia finală
-│
-├── 📂 core/                    # LOGICA BACKEND (Sistemul de operare)
-│   ├── 📄 __init__.py
-│   ├── 📄 file_manager.py      # Mutare, redenumire (cross-platform cu pathlib)
-│   ├── 📄 undo_manager.py      # Logica pentru stiva de Undo (ultimele 50 acțiuni)
-│   ├── 📄 quarantine_db.py     # Baza de date SQLite pentru fișierele nesigure
-│   └── 📄 scan_worker.py       # QThread: pipeline-ul complet de scanare (Vision + Extragere + Decizie)
-│
-├── 📂 ui/                      # INTERFAȚA GRAFICĂ (PyQt6)
-│   ├── 📄 __init__.py
-│   ├── 📄 styles.qss           # Design System (Dark Theme, culori, fonturi)
-│   ├── 📄 app_window.py        # QMainWindow și gestionarea thread-urilor
-│   └── 📂 tabs/                
-│       ├── scan_tab.py         # Start, Progress Bar, Terminal vizual
-│       ├── rules_tab.py        # Switch între Drag&Drop și AI Chat Box
-│       ├── quarantine_tab.py   # Split-screen (Previzualizare vs Editare AI)
-│       └── history_tab.py      # Tabelul cu acțiuni și butoane de Undo
-│
-└── 📂 tests/                   # TESTARE ȘI EVALUARE (Barem)
-    ├── 📄 __init__.py
-    ├── 📄 test_core.py         # Unit tests pentru file_manager și undo
-    └── 📂 evals/               
-        └── test_agents.py      # Verifică dacă Agenții 0 și 2 scot JSON valid
+┌─────────────────────────────────────────────────────────────────┐
+│                         ClutterKill                             │
+│                                                                 │
+│  📂 Folder Sursă          📂 Folder Destinație                  │
+│  (haos total)              (organizat de AI)                    │
+│                                                                 │
+│  factura_scan123.pdf  ──►  2024_eMAG_Laptop_Gaming.pdf         │
+│  IMG_20231225.jpeg    ──►  Christmas_Family_Dinner.jpeg        │
+│  doc(1)(2).docx       ──►  Referat_Economia_Digitala.docx     │
+│  ???_unknown.pdf      ──►  🔒 Quarantine (AI nesigur)          │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-## 🧠 AI Model Registry
+Aplicația folosește **3 agenți AI** care lucrează în lanț:
 
-ClutterKill folosește **4 modele AI locale** rulând prin Ollama în Docker:
+| Agent | Rol | Ce face concret |
+|-------|-----|-----------------|
+| **Agent 0** (Compiler) | Înțelege regula ta | Transformă instrucțiunea ta ("Facturi eMAG") într-un JSON structurat |
+| **Agent 1** (Extractor) | Citește fișierul | Extrage text din PDF/DOCX/imagini, generează un rezumat tehnic |
+| **Agent 2** (Decider) | Ia decizia finală | Combină regula cu rezumatul și decide: mută + redenumește SAU carantină |
 
-| Model | Bază | Scop | Fișier Config | Mărime |
-|-------|------|------|---------------|--------|
-| `ck-model` | `gemma2:2b` | Agent 0 (Compiler) + Agent 2 (Decider) — clasificare și decizie | `ai/Modelfile` | ~1.6GB |
-| `ck-extractor` | `gemma2:2b` | Agent 1 (Extractor) — rezumat tehnic documente | `ai/Modelfile.extractor` | ~1.6GB |
-| `ck-vision` | `llava:7b` | Vision AI — identificare vizuală imagini (dog, cat, sign...) | `ai/Modelfile.vision` | ~4.5GB |
-| `gemma2:2b` | - | Model de bază (descărcat automat) | - | ~1.6GB |
-| `llava:7b` | - | Model de bază multimodal (descărcat automat) | - | ~4.5GB |
+---
 
-### Pipeline de procesare imagini
+## 📋 Cerințe de sistem
+
+| Cerință | Detalii |
+|---------|---------|
+| **Python** | 3.10 sau mai nou |
+| **Docker Desktop** | Doar dacă folosești Ollama local (fără Google API key) |
+| **Tesseract OCR** | Opțional — necesar doar pentru extragerea textului din imagini |
+| **Spațiu pe disk** | ~500MB (doar Google Gemini) sau ~7GB (cu modele Ollama locale) |
+
+---
+
+## 🚀 Instalare rapidă
+
+### macOS / Linux
+
+```bash
+# 1. Clonează repo-ul
+git clone https://github.com/FerTeo/ClutterKill.git
+cd ClutterKill
+
+# 2. (Opțional) Setează Google API key ÎNAINTE de setup
+cp .env.example .env
+# Editează .env și pune cheia ta reală la GOOGLE_API_KEY=...
+
+# 3. Rulează setup-ul automat
+bash setup.sh
+
+# 4. Pornește aplicația
+bash start.sh
+```
+
+**Ce face `setup.sh` automat:**
+1. ✅ Creează mediul virtual Python (`.venv`)
+2. ✅ Instalează toate dependențele din `requirements.txt`
+3. ✅ Generează fișierul `.env` din template (dacă nu există)
+4. ✅ Detectează dacă ai `GOOGLE_API_KEY`:
+   - **Dacă DA** → gata, nu mai face nimic cu Docker
+   - **Dacă NU** → pornește `docker compose up -d` și descarcă modelele AI automat
+
+### Windows
+
+```cmd
+REM 1. Clonează repo-ul
+git clone https://github.com/FerTeo/ClutterKill.git
+cd ClutterKill
+
+REM 2. (Opțional) Setează Google API key ÎNAINTE de setup
+copy .env.example .env
+REM Editează .env cu Notepad și pune cheia la GOOGLE_API_KEY=...
+
+REM 3. Rulează setup-ul automat
+setup.bat
+
+REM 4. Pornește aplicația
+start.bat
+```
+
+> [!NOTE]
+> Pe Windows, scripturile `.bat` fac exact același lucru ca cele `.sh` de pe Mac/Linux. Aceeași logică de auto-detect pentru Google API key.
+
+---
+
+## ⚙️ Configurare AI Provider
+
+Aplicația detectează **automat** ce provider AI să folosească pe baza fișierului `.env`:
 
 ```text
-📷 Imagine (.jpg/.png)  →  Vision AI (ck-vision / llava:7b)  →  "dog"
-                        →  OCR (Tesseract)                   →  text extras
-                        →  Combinate în rezumat               →  Decizie: Dog.jpeg
+Există GOOGLE_API_KEY valid în .env?
+  ├── ✅ DA  →  Google Gemini (cloud, rapid, fără Docker)
+  └── ❌ NU  →  Ollama local (Docker, offline, gratuit)
 ```
 
-Pentru **documente** (PDF, DOCX, TXT) se folosește doar pipeline-ul text clasic (fără Vision AI).
+### Opțiunea 1: Google Gemini (recomandat — rapid, fără Docker)
 
-## 📁 Directory Architecture
+1. Obține un API key gratuit de pe [Google AI Studio](https://aistudio.google.com/apikey)
+2. Deschide fișierul `.env` și înlocuiește placeholder-ul:
 
-The project follows a structured modular architecture:
-
-- **`ui/`**: Contains the graphical user interface components built with `PyQt6`.
-- **`core/`**: Houses the core application logic (file management, quarantine, undo mechanisms).
-- **`ai/`**: Contains AI models, agents, and configuration for handling language models and extraction tasks.
-- **`tests/`**: Includes all the unit and integration tests driven by `pytest`.
-- **`scripts/`**: Utility scripts (e.g., generating mock data for testing).
-- **`docs/`**: Documentation files (architecture, AI models reports, etc.).
-
-*Note: The `ui/`, `core/`, `ai/`, and `tests/` directories are Python packages and contain `__init__.py` files.*
-
-## 📦 Dependencies & Installation
-
-The project's Python dependencies are listed in `requirements.txt`, which include:
-- **PyQt6**: For the desktop graphical interface.
-- **Langchain & Langchain-Community**: For building and orchestrating AI agents.
-- **PyMuPDF, Pytesseract, Pillow, python-docx, fpdf**: For processing and analyzing various document and image formats.
-- **Pydantic**: For data validation.
-- **Pytest**: For testing the codebase.
-- **Ruff**: For extremely fast Python linting and code formatting.
-
-### How to Install:
-
-**1. System Dependencies (OCR)**
-To process images (PNG, JPG), you must install Tesseract OCR on your host machine:
-- **macOS**: `brew install tesseract tesseract-lang`
-- **Windows**: Download the installer from [UB-Mannheim](https://github.com/UB-Mannheim/tesseract/wiki)
-- **Linux (Ubuntu/Debian)**: `sudo apt-get install tesseract-ocr tesseract-ocr-ron`
-
-**2. Python Dependencies**
-To set up your environment, install the dependencies using `pip`:
-```bash
-pip install -r requirements.txt
+```env
+# ─── Google Gemini ─────────────────────────────────────────────
+GOOGLE_API_KEY=AIzaSyD...cheia_ta_reala_aici
+GOOGLE_MODEL_NAME=gemini-2.0-flash
 ```
-*(If you use `uv`, you can also run `uv pip install -r requirements.txt`)*
 
-## 🛠️ Code Formatting & Pre-Commit Hooks
+3. Rulează `bash setup.sh` (sau `setup.bat` pe Windows) — va detecta key-ul și va sări peste Docker
+4. Gata! Aplicația va folosi Google Gemini instant
 
-To ensure consistent code quality and formatting, this project is configured to use **`pre-commit`** with **`ruff`**. This will automatically format your Python code every time you make a commit.
+> [!TIP]
+> Cu Google Gemini, procesarea unui folder de 10 fișiere durează **sub 30 de secunde**. Cu Ollama local pe CPU, aceeași operație poate dura **5-10 minute**.
 
-### How to Use:
-1. Ensure `pre-commit` is installed globally:
-   ```bash
-   pip install pre-commit
-   ```
-2. Install the Git hook script within your local repository:
-   ```bash
-   pre-commit install
-   ```
+### Opțiunea 2: Ollama Local (Docker — gratuit, offline)
 
+Dacă **nu** ai sau **nu vrei** un API key Google, aplicația folosește modele AI locale care rulează prin Docker.
 
-Once installed, `ruff` will automatically format your code on `git commit`. If changes are made by the formatter, the commit will abort—simply `git add` the updated files and run `git commit` again.
+**Cerințe suplimentare:**
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalat și pornit
+- Minim **10GB spațiu liber** pe disk (modelele au ~6GB)
 
-## 🐳 Environment & Local AI Setup
-
-Aplicația funcționează în **două moduri**, alese automat:
-
-| Mod | Când se activează | Ce folosește | Docker necesar? |
-|-----|-------------------|--------------|-----------------|
-| ☁️ **Google Gemini** | Dacă `GOOGLE_API_KEY` este setat valid în `.env` | API-ul Google Gemini (cloud) | ❌ Nu |
-| 🐳 **Ollama Local** | Dacă NU există `GOOGLE_API_KEY` (sau e placeholder) | Modele locale prin Docker | ✅ Da |
-
-**Aplicația detectează automat** care mod să folosească. Dacă ai un API key Google setat, nu se mai atinge de Docker deloc.
-
-### Instalare (o singură comandă):
-
+**Setup:**
 ```bash
+# setup.sh detectează automat că nu ai Google key și pornește Docker
 bash setup.sh
 ```
 
-Scriptul `setup.sh` face totul automat:
-1. Creează mediul virtual Python și instalează dependențele
-2. Generează fișierul `.env` din template (dacă nu există)
-3. **Verifică** dacă ai `GOOGLE_API_KEY` setat:
-   - ✅ Dacă **DA** → gata, nu mai face nimic cu Docker
-   - ❌ Dacă **NU** → pornește `docker compose up -d` care:
-     - Pornește containerul Ollama (serverul AI local)
-     - Descarcă automat modelele (`gemma2:2b` ≈ 1.6GB + `llava:7b` ≈ 4.5GB)
-     - Creează modelele custom (`ck-model`, `ck-extractor`, `ck-vision`)
+Ce se întâmplă în spate:
+1. `docker compose up -d` pornește 3 servicii:
+   - **`ollama`** — serverul Ollama (rulează permanent)
+   - **`ollama-setup`** — descarcă modelele de bază (`gemma2:2b` + `llava:7b`) și creează modelele custom (`ck-model`, `ck-extractor`, `ck-vision`). Rulează **o singură dată** la prima instalare.
+   - **`app`** — containerul Python (opțional, pentru teste)
+2. Modelele sunt salvate persistent într-un volum Docker (`ollama_data`), deci nu se re-descarcă la fiecare restart
 
-> [!TIP]
-> **Recomandat:** Dacă ai un API key Google Gemini, setează-l în `.env` înainte de `setup.sh`:
-> ```bash
-> cp .env.example .env
-> # editează .env și pune GOOGLE_API_KEY=cheia_ta_reala
-> bash setup.sh
-> ```
-> Astfel nu vei avea nevoie de Docker deloc și aplicația va rula instant.
+**Monitorizare descărcare modele:**
+```bash
+docker compose logs -f ollama-setup
+# Când vezi "=== Toate modelele sunt gata! ===" poți porni aplicația
+```
 
-> [!WARNING]
-> **Probleme cu Docker pe Mac (Out of Space):**
-> Modelele AI locale au ~6GB. Dacă ai puțin spațiu pe disk, Docker poate crăpa cu erori de `input/output error`. Fix:
-> ```bash
-> docker builder prune -a -f
-> docker system prune -f
-> ```
-> Apoi rulează din nou `bash setup.sh`.
+**Verificare modele instalate:**
+```bash
+docker exec clutterkill_ollama ollama list
+# Ar trebui să vezi: ck-model, ck-extractor, ck-vision, gemma2:2b, llava:7b
+```
 
-### Lansare aplicație:
+---
 
+## ▶️ Lansare aplicație
+
+### macOS / Linux
 ```bash
 bash start.sh
 ```
 
-Scriptul `start.sh` pornește automat containerul Ollama (dacă e cazul) și lansează interfața grafică.
+### Windows
+```cmd
+start.bat
+```
 
-## 🌟 Changelog / Update-uri Recente
-- **Auto-detect AI Provider:** Aplicația detectează automat dacă ai Google API key și îl folosește pe Gemini. Fără key → fallback la Ollama local prin Docker. Nu mai trebuie setat manual `AI_PROVIDER`.
-- **Setup simplificat:** Un singur `bash setup.sh` face totul. Docker-ul descarcă modelele automat prin `docker-compose.yml` (serviciul `ollama-setup`).
-- **UI Revamp (Dark Theme Premium):** Interfața a primit un redesign complet bazat pe paleta Catppuccin Macchiato. Colțuri rotunjite, butoane colorate vibrant și efecte subtile.
-- **Visual Builder Funcțional:** Tab-ul "Rules" suportă acum șabloane stricte (Templates). A fost adăugată o paletă de butoane "Click-to-Insert" pentru a introduce automat variabile matematice (ex: `[An]`, `[Luna]`) fără a le tasta manual.
-- **Simplificare Arhitectură Directoare (Flattened Output):** La cererea utilizatorilor, fișierele redenumite de AI nu mai sunt forțate în sub-foldere. Ele sunt exportate direct în root-ul folderului destinație ales de tine.
-- **Reparare ExtractorAgent (Bug-ul "Strip"):** Rezolvată o problemă critică cauzată de noul SDK Google V2 care bloca parsarea imaginilor aruncând toate rezultatele direct în carantină.
-- **Rate-Limiting Gemini V2:** Adăugat mecanism automat de sleep (15 secunde) atunci când API-ul gratuit Google atinge limitele HTTP 429.
+**Ce face `start.sh` / `start.bat`:**
+1. Activează mediul virtual Python
+2. Verifică dacă ai Google API key:
+   - **DA** → pornește direct aplicația (fără Docker)
+   - **NU** → pornește containerul Ollama și așteaptă să fie gata
+3. Lansează interfața grafică (`python main.py`)
 
-*Note: Aplicația detectează automat provider-ul AI pe baza variabilei `GOOGLE_API_KEY` din `.env`. Dacă cheia există și e validă → Google Gemini. Dacă nu → Ollama local prin Docker.*
+**Alternativ (manual):**
+```bash
+source .venv/bin/activate   # Mac/Linux
+# SAU: .venv\Scripts\activate.bat   # Windows
 
-For more detailed DevOps and QA instructions, please refer to [README_ingineri.md](README_ingineri.md).
+python main.py
+```
+
+---
+
+## 📖 User Stories
+
+| # | Titlu | Descriere |
+|---|-------|-----------|
+| US1 | **Selecție foldere** | Selectez un folder sursă și un folder destinație prin butoane de "Browse" |
+| US2 | **Reguli Standard (Drag & Drop)** | Trag blocuri logice (`[An]`, `[Emitent]`) pentru a forma șabloane vizuale de redenumire |
+| US3 | **Salvare Șabloane** | Salvez șabloanele sub un nume personalizat (ex: "Regulă Facturi") pentru reutilizare |
+| US4 | **Optimizare PDF-uri** | Setez o limită de pagini citite pentru PDF-uri mari (ex: doar primele 10 pagini) |
+| US5 | **Monitorizare Progres** | Apăs "Start Kill" și văd o bară de progres animată cu statusul în timp real |
+| US6 | **Transparență AI** | Un log vizual (terminal integrat) afișează deciziile AI în timp real |
+| US7 | **Zona de Carantină** | Fișierele despre care AI-ul nu e sigur ajung în tab-ul "Quarantine Zone" |
+| US8 | **Decizie Rapidă (Split Screen)** | Click pe un fișier din Carantină → split screen: previzualizare + propunerea AI |
+| US9 | **Corectare Manuală** | Editez manual numele propus de AI și apăs "Approve" |
+| US10 | **Undo (Safety Net)** | Tab "Activity History" cu ultimele 50 de fișiere mutate + buton "Undo" pe fiecare rând |
+| US11 | **Reguli Avansate AI** | Scriu o regulă complexă în limbaj natural (ex: "Dacă e factură eMAG, pune-l în Facturi/") |
+
+---
+
+## 🏗️ Arhitectură proiect
+
+```text
+ClutterKill/
+├── 📄 main.py                    # Punctul de intrare — lansează interfața PyQt6
+├── 📄 requirements.txt           # Dependențe Python
+├── 📄 Dockerfile                 # Container Python app (tesseract + dependențe)
+├── 📄 docker-compose.yml         # Orchestrare: ollama + ollama-setup + app
+├── 📄 .dockerignore              # Exclude .venv, .git etc. din build context
+├── 📄 .env.example               # Template pentru variabilele de mediu
+├── 📄 setup.sh / setup.bat       # Setup automat (Mac/Linux / Windows)
+├── 📄 start.sh / start.bat       # Lansare aplicație (Mac/Linux / Windows)
+│
+├── 📂 ai/                        # MODULUL AI
+│   ├── llm_config.py             # Factory LLM — auto-detect Google vs Ollama
+│   ├── vision_tools.py           # Vision AI — analiză vizuală imagini
+│   ├── tools.py                  # Extragere text din PDF, imagini, DOCX
+│   ├── agent_compiler.py         # Agent 0: Regulă naturală → JSON structurat
+│   ├── agent_extractor.py        # Agent 1: Fișier fizic → rezumat tehnic
+│   ├── agent_decider.py          # Agent 2: Rezumat + regulă → decizie finală
+│   ├── Modelfile                 # Config model Ollama (clasificare)
+│   ├── Modelfile.extractor       # Config model Ollama (extragere)
+│   └── Modelfile.vision          # Config model Ollama (vision/imagini)
+│
+├── 📂 core/                      # LOGICA BACKEND
+│   ├── file_manager.py           # Mutare, redenumire fișiere (cross-platform)
+│   ├── undo_manager.py           # Stiva de Undo (ultimele 50 acțiuni)
+│   ├── quarantine_db.py          # SQLite DB pentru fișierele nesigure
+│   └── scan_worker.py            # QThread: pipeline complet de scanare
+│
+├── 📂 ui/                        # INTERFAȚA GRAFICĂ (PyQt6)
+│   ├── app_window.py             # QMainWindow principal
+│   ├── style.qss                 # Dark Theme (Catppuccin Macchiato)
+│   └── tabs/
+│       ├── scan_tab.py           # Tab Scanare: Start, Progress, Terminal
+│       ├── rules_tab.py          # Tab Reguli: Drag&Drop + AI Chat
+│       ├── quarantine_tab.py     # Tab Carantină: Split-screen preview
+│       └── history_tab.py        # Tab Istoric: Tabel + Undo
+│
+├── 📂 tests/                     # TESTE
+│   ├── test_core.py              # Unit tests file_manager, undo
+│   └── evals/
+│       └── test_agents.py        # Teste agenți AI (JSON valid)
+│
+├── 📂 scripts/                   # UTILITARE
+│   └── generate_mock_data.py     # Generează fișiere de test
+│
+└── 📂 docs/                      # DOCUMENTAȚIE
+    ├── RAPORT_AI.md              # Raport utilizare LLM-uri
+    └── arhitectura.md            # Diagrame UML și flux (Mermaid)
+```
+
+---
+
+## 🧠 AI Model Registry
+
+ClutterKill folosește modele AI diferite în funcție de provider:
+
+### Modul Google Gemini (cloud)
+| Funcție | Model folosit | Descriere |
+|---------|---------------|-----------|
+| Clasificare + Decizie | `gemini-2.0-flash` | Rapid, gratuit cu limite |
+| Extragere text | `gemini-2.0-flash` | Rezumat tehnic documente |
+| Vision (imagini) | `gemini-2.0-flash` | Multimodal — identificare vizuală |
+
+### Modul Ollama Local (Docker)
+| Model Custom | Model de Bază | Scop | Fișier Config | Mărime |
+|-------------|---------------|------|---------------|--------|
+| `ck-model` | `gemma2:2b` | Agent 0 (Compiler) + Agent 2 (Decider) | `ai/Modelfile` | ~1.6GB |
+| `ck-extractor` | `gemma2:2b` | Agent 1 (Extractor) — rezumat documente | `ai/Modelfile.extractor` | ~1.6GB |
+| `ck-vision` | `llava:7b` | Vision AI — identificare vizuală imagini | `ai/Modelfile.vision` | ~4.5GB |
+
+---
+
+## 🔄 Pipeline de procesare
+
+### Pentru documente (PDF, DOCX, TXT):
+```text
+📄 Document  →  Extragere text (PyMuPDF / python-docx)
+             →  Agent 1 (Extractor): rezumat tehnic
+             →  Agent 2 (Decider): decizie + redenumire
+             →  ✅ Mutat SAU 🔒 Carantină
+```
+
+### Pentru imagini (JPG, PNG, BMP):
+```text
+📷 Imagine  →  Vision AI (Gemini sau LLaVA): identificare vizuală → "dog"
+            →  OCR (Tesseract): text extras din imagine
+            →  Rezumat combinat (vizual + text)
+            →  Agent 2 (Decider): decizie + redenumire
+            →  ✅ Dog_Playing_Park.jpeg SAU 🔒 Carantină
+```
+
+---
+
+## 📦 Dependențe Python
+
+Toate dependențele sunt în `requirements.txt`:
+
+| Pachet | Scop |
+|--------|------|
+| `PyQt6` | Interfață grafică desktop |
+| `langchain`, `langchain-core`, `langchain-community` | Orchestrare agenți AI |
+| `langchain-ollama` | Conector LangChain → Ollama local |
+| `langchain-google-genai` | Conector LangChain → Google Gemini |
+| `PyMuPDF` | Extragere text din PDF-uri |
+| `pytesseract` | OCR — text din imagini |
+| `Pillow` | Procesare imagini |
+| `python-docx` | Citire fișiere Word (.docx) |
+| `fpdf2` | Generare PDF-uri de test |
+| `pydantic` | Validare date structurate |
+| `python-dotenv` | Citire variabile din `.env` |
+| `pytest` | Framework de testare |
+| `ruff` | Linting și formatare cod |
+
+### Instalare Tesseract OCR (opțional):
+
+| OS | Comandă |
+|----|---------|
+| **macOS** | `brew install tesseract tesseract-lang` |
+| **Windows** | Descarcă installerul de la [UB-Mannheim](https://github.com/UB-Mannheim/tesseract/wiki) |
+| **Linux (Ubuntu)** | `sudo apt-get install tesseract-ocr tesseract-ocr-ron` |
+
+---
+
+## 🛠️ Code Formatting & Pre-Commit Hooks
+
+Proiectul folosește **`pre-commit`** cu **`ruff`** pentru formatare automată la fiecare commit.
+
+```bash
+# Instalare (o singură dată)
+pip install pre-commit
+pre-commit install
+
+# De acum, la fiecare git commit, ruff va formata automat codul.
+# Dacă face modificări, commit-ul se anulează — dă git add și commit din nou.
+```
+
+---
+
+## 🔧 Troubleshooting
+
+### ❌ "Connection refused" / "Connection reset by peer"
+**Cauza:** Containerul Ollama nu este pornit sau nu a terminat de descărcat modelele.
+**Fix:**
+```bash
+# Verifică dacă containerul rulează
+docker ps
+
+# Verifică progresul descărcării modelelor
+docker compose logs -f ollama-setup
+
+# Repornește totul
+docker compose down && docker compose up -d
+```
+
+### ❌ "input/output error" / "no space left on device"
+**Cauza:** Hard disk-ul este plin. Docker folosește mult spațiu pentru Build Cache.
+**Fix:**
+```bash
+docker builder prune -a -f
+docker system prune -f
+# Apoi rulează din nou: bash setup.sh
+```
+
+### ❌ "suggested_name: Input should be a valid string"
+**Cauza:** Bug vechi Pydantic în `agent_decider.py` — a fost reparat.
+**Fix:** Asigură-te că ai ultima versiune a codului (`git pull`).
+
+### ❌ Aplicația e lentă (minute per fișier)
+**Cauza:** Folosești Ollama local pe CPU în loc de Google Gemini.
+**Fix:** Setează `GOOGLE_API_KEY` în `.env` cu o cheie reală de la [Google AI Studio](https://aistudio.google.com/apikey).
+
+### ❌ "API Rate Limit Hit (429)"
+**Cauza:** Ai depășit limita gratuită a API-ului Google Gemini.
+**Fix:** Aplicația face automat retry cu sleep de 15 secunde. Dacă persistă, așteaptă câteva minute.
+
+### ❌ Tesseract nu funcționează / OCR dezactivat
+**Cauza:** Tesseract OCR nu este instalat pe sistemul tău.
+**Fix:** Instalează-l conform tabelului de mai sus (secțiunea Dependențe Python).
+
+---
+
+## 🌟 Changelog
+
+- **Auto-detect AI Provider:** Aplicația detectează automat dacă ai Google API key → folosește Gemini. Fără key → fallback la Ollama local prin Docker. Nu mai trebuie setat manual `AI_PROVIDER`.
+- **Setup simplificat:** Un singur `bash setup.sh` (sau `setup.bat` pe Windows) face totul automat. Docker descarcă modelele prin `docker-compose.yml` (serviciul `ollama-setup`).
+- **Scripturi Windows:** `setup.bat` și `start.bat` funcționează identic cu variantele `.sh` de pe Mac/Linux.
+- **UI Revamp (Dark Theme Premium):** Interfața a primit un redesign complet bazat pe paleta Catppuccin Macchiato.
+- **Visual Builder Funcțional:** Tab-ul "Rules" suportă șabloane stricte cu butoane "Click-to-Insert" pentru variabile (`[An]`, `[Luna]`, `[Emitent]`).
+- **Flattened Output:** Fișierele redenumite de AI sunt exportate direct în root-ul folderului destinație (fără sub-foldere forțate).
+- **Fix ExtractorAgent:** Rezolvat bug cauzat de noul SDK Google V2 care bloca parsarea imaginilor.
+- **Rate-Limiting Gemini:** Mecanism automat de sleep (15s) la HTTP 429.
+
+---
+
+*Pentru instrucțiuni detaliate de DevOps și QA, consultă [README_ingineri.md](README_ingineri.md).*
