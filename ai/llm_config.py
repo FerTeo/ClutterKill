@@ -92,7 +92,9 @@ def get_llm(
 
     if provider == "google":
         if is_placeholder:
-            raise ValueError("GOOGLE_API_KEY is required and cannot be empty or the placeholder.")
+            raise ValueError(
+                "GOOGLE_API_KEY is required and cannot be empty or the placeholder."
+            )
 
         google_model = os.getenv("GOOGLE_MODEL_NAME", _DEFAULT_GOOGLE_MODEL)
         temp = temperature if temperature is not None else 0.1
